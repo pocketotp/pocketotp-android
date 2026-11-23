@@ -1,0 +1,36 @@
+# secrets and local config
+SECRET_TOKEN.txt
+token.txt
+*.token
+.dev.vars
+.env
+.env.*
+local.properties
+keystore.properties
+
+# signing
+*.jks
+*.keystore
+*.p12
+
+# android / gradle
+.gradle/
+**/.gradle/
+build/
+**/build/
+.idea/
+*.iml
+captures/
+.cxx/
+.kotlin/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.so
+
+# misc
+.DS_Store
+Thumbs.db
+*.swp
+*~
