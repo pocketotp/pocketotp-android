@@ -26,7 +26,7 @@ class UploadWorker(
                 Result.success()
             }
             resp.code in 400..499 && resp.code != 408 && resp.code != 429 -> {
-                if (path == "/sms") record(payload, skipped = true, reason = "http_${resp.code}")
+                if (path == "/sms") record(payload, skipped = true, reason = resp.error ?: "http_${resp.code}")
                 Log.w(TAG, "upload $path giving up http=${resp.code}")
                 Result.failure()
             }

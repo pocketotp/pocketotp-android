@@ -9,6 +9,9 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 object RelayHttp {
+    /** Set by [PocketOtpApp] so every response can update account state (revoked / plan limits). */
+    @Volatile var appContext: android.content.Context? = null
+
     data class Response(
         val code: Int,
         val ok: Boolean,
@@ -46,6 +49,7 @@ object RelayHttp {
                 } else {
                     Log.i(TAG, "POST $path http=$code")
                 }
+                appContext?.let { RelayEvents.onResponse(it, token, path, code, body) }
                 Response(code = code, ok = code in 200..299, body = body, error = err.ifBlank { null })
             }
         } catch (e: Exception) {

@@ -12,8 +12,8 @@ android {
         applicationId = "com.pocketotp.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "2.4.0"
+        versionCode = 12
+        versionName = "2.5.1"
     }
 
     buildTypes {
@@ -51,6 +51,7 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.3.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     val composeBom = platform("androidx.compose:compose-bom:2025.12.00")
     implementation(composeBom)

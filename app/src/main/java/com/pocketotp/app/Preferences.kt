@@ -42,6 +42,38 @@ class Preferences(context: Context) {
         get() = prefs.getString(KEY_BLACKLIST, DEFAULT_BLACKLIST) ?: DEFAULT_BLACKLIST
         set(value) = prefs.edit().putString(KEY_BLACKLIST, value).apply()
 
+    /** The relay revoked this device's token; Home shows a re-pair prompt. */
+    var revoked: Boolean
+        get() = prefs.getBoolean(KEY_REVOKED, false)
+        set(value) = prefs.edit().putBoolean(KEY_REVOKED, value).apply()
+
+    var planSuspended: Boolean
+        get() = prefs.getBoolean(KEY_SUSPENDED, false)
+        set(value) = prefs.edit().putBoolean(KEY_SUSPENDED, value).apply()
+
+    /** "" when the relay doesn't report a plan (old single-user relay). */
+    var plan: String
+        get() = prefs.getString(KEY_PLAN, "").orEmpty()
+        set(value) = prefs.edit().putString(KEY_PLAN, value).apply()
+
+    /** Encoded by [RelayState.storeSlots]; "" = unknown. */
+    var allowedSlots: String
+        get() = prefs.getString(KEY_ALLOWED_SLOTS, "").orEmpty()
+        set(value) = prefs.edit().putString(KEY_ALLOWED_SLOTS, value).apply()
+
+    /** Last /sms plan error key ([RelayState.Issue.key]) or "". */
+    var relayIssue: String
+        get() = prefs.getString(KEY_RELAY_ISSUE, "").orEmpty()
+        set(value) = prefs.edit().putString(KEY_RELAY_ISSUE, value).apply()
+
+    var relayIssueSlot: Int
+        get() = prefs.getInt(KEY_RELAY_ISSUE_SLOT, 0)
+        set(value) = prefs.edit().putInt(KEY_RELAY_ISSUE_SLOT, value).apply()
+
+    var relayIssueAt: Long
+        get() = prefs.getLong(KEY_RELAY_ISSUE_AT, 0L)
+        set(value) = prefs.edit().putLong(KEY_RELAY_ISSUE_AT, value).apply()
+
     fun blacklistKeywords(): List<String> =
         blacklistText.lineSequence()
             .map { it.trim() }
@@ -86,6 +118,19 @@ class Preferences(context: Context) {
         }
         prefs.edit().putString(KEY_HISTORY, arr.toString()).apply()
     }
+
+    var onboardingDone: Boolean
+        get() = prefs.getBoolean(KEY_ONBOARDING_DONE, false)
+        set(value) = prefs.edit().putBoolean(KEY_ONBOARDING_DONE, value).apply()
+
+    var permissionsAsked: Boolean
+        get() = prefs.getBoolean(KEY_PERMS_ASKED, false)
+        set(value) = prefs.edit().putBoolean(KEY_PERMS_ASKED, value).apply()
+
+    /** Set when the relay issues a device token through QR pairing. */
+    var deviceId: String
+        get() = prefs.getString(KEY_DEVICE_ID, "").orEmpty()
+        set(value) = prefs.edit().putString(KEY_DEVICE_ID, value).apply()
 
     var connectionState: String
         get() = prefs.getString(KEY_CONNECTION, "offline") ?: "offline"
@@ -160,6 +205,16 @@ class Preferences(context: Context) {
         const val KEY_HISTORY = "history"
         const val KEY_SENDS = "sends"
         const val KEY_CONNECTION = "connection"
+        const val KEY_ONBOARDING_DONE = "onboarding_done"
+        const val KEY_PERMS_ASKED = "permissions_asked"
+        const val KEY_DEVICE_ID = "device_id"
+        const val KEY_REVOKED = "revoked"
+        const val KEY_SUSPENDED = "plan_suspended"
+        const val KEY_PLAN = "plan"
+        const val KEY_ALLOWED_SLOTS = "allowed_slots"
+        const val KEY_RELAY_ISSUE = "relay_issue"
+        const val KEY_RELAY_ISSUE_SLOT = "relay_issue_slot"
+        const val KEY_RELAY_ISSUE_AT = "relay_issue_at"
         // Hosted relay URL is entered in the app (or via the debug CONFIGURE intent). Not baked in.
         const val DEFAULT_ENDPOINT = ""
         const val DEFAULT_BLACKLIST = """银行

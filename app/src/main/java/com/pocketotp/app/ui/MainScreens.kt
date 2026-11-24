@@ -96,7 +96,21 @@ data class MainUiState(
     val pendingConfirms: Int,
     val versionName: String,
     val nowMs: Long,
+    val checks: List<com.pocketotp.app.SetupChecks.Check> = emptyList(),
+    val account: AccountUi = AccountUi(),
 )
+
+/** Hosted-relay account state. All defaults = old single-user relay (nothing to show). */
+data class AccountUi(
+    val revoked: Boolean = false,
+    val suspended: Boolean = false,
+    val plan: String? = null,
+    val allowedSlots: List<Int>? = null,
+    val issue: com.pocketotp.app.RelayState.Issue? = null,
+    val issueSlot: Int = 0,
+) {
+    fun slotOnPlan(slot: Int): Boolean? = allowedSlots?.let { slot in it }
+}
 
 class MainActions(
     val setEnabled: (Boolean) -> Unit,
@@ -107,13 +121,33 @@ class MainActions(
     val openBatterySettings: () -> Unit,
     val openFullScreenSettings: () -> Unit,
     val openPendingConfirm: () -> Unit,
+    val fixCheck: (com.pocketotp.app.SetupChecks.Id) -> Unit = {},
+    val scanQr: () -> Unit = {},
+    val pairFromText: (String) -> Unit = {},
+    val openOnboarding: () -> Unit = {},
+    val openRepair: () -> Unit = {},
 )
 
 private enum class Tab(val label: Int) { HOME(R.string.tab_home), HISTORY(R.string.tab_history), SETTINGS(R.string.tab_settings) }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainApp(state: MainUiState, actions: MainActions, initialTab: Int = 0) {
+fun MainApp(
+    state: MainUiState,
+    actions: MainActions,
+    initialTab: Int = 0,
+    showOnboarding: Boolean = false,
+    onboardingStep: Int = 0,
+    onFinishOnboarding: () -> Unit = {},
+    pairing: PairingUiState = PairingUiState(),
+    onPairConfirm: () -> Unit = {},
+    onPairDismiss: () -> Unit = {},
+) {
+    PairingDialog(pairing, onPairConfirm, onPairDismiss)
+    if (showOnboarding) {
+        OnboardingScreen(state, actions, onboardingStep, onFinishOnboarding)
+        return
+    }
     var tab by rememberSaveable { mutableIntStateOf(initialTab.coerceIn(0, Tab.entries.size - 1)) }
     val current = Tab.entries[tab]
     Scaffold(
@@ -173,6 +207,7 @@ private fun HomeScreen(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        AccountBanners(state.account, actions)
         if (state.pendingConfirms > 0) {
             Banner(
                 text = stringResource(R.string.home_pending_confirm, state.pendingConfirms),
@@ -182,11 +217,11 @@ private fun HomeScreen(
                 content = MaterialTheme.colorScheme.onErrorContainer,
             )
         }
-        if (state.missingPermissions.isNotEmpty()) {
+        if (!com.pocketotp.app.SetupChecks.requiredOk(state.checks)) {
             Banner(
                 text = stringResource(R.string.home_missing_perms),
-                action = stringResource(R.string.action_grant),
-                onAction = actions.requestPermissions,
+                action = stringResource(R.string.home_finish_setup),
+                onAction = actions.openOnboarding,
                 container = MaterialTheme.colorScheme.tertiaryContainer,
                 content = MaterialTheme.colorScheme.onTertiaryContainer,
             )
@@ -202,6 +237,13 @@ private fun HomeScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        if (state.account.slotOnPlan(sim.slot) == false) {
+                            Text(
+                                stringResource(R.string.sim_not_on_plan),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
             }
@@ -235,6 +277,7 @@ private fun StatusCard(state: MainUiState, actions: MainActions, onOpenSettings:
     val (title, detail, dot) = when {
         !state.configured -> Triple(stringResource(R.string.status_unconfigured), stringResource(R.string.status_unconfigured_detail), bad)
         !state.enabled -> Triple(stringResource(R.string.status_paused), stringResource(R.string.status_paused_detail), warn)
+        state.account.suspended -> Triple(stringResource(R.string.status_suspended), stringResource(R.string.status_suspended_detail), bad)
         state.connection == "websocket" -> Triple(stringResource(R.string.status_online), stringResource(R.string.status_detail_ws), ok)
         state.connection == "polling" -> Triple(stringResource(R.string.status_online), stringResource(R.string.status_detail_poll), ok)
         state.connection == "reconnecting" -> Triple(stringResource(R.string.status_reconnecting), stringResource(R.string.status_reconnecting_detail), warn)
@@ -255,6 +298,9 @@ private fun StatusCard(state: MainUiState, actions: MainActions, onOpenSettings:
                 Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             }
             Text(detail, style = MaterialTheme.typography.bodyMedium)
+            state.account.plan?.let { plan ->
+                Text(stringResource(R.string.status_plan, planLabel(plan)), style = MaterialTheme.typography.bodyMedium)
+            }
             Text(
                 stringResource(R.string.status_today, HistoryFormat.forwardedToday(state.history, state.nowMs)),
                 style = MaterialTheme.typography.bodyMedium,
@@ -275,12 +321,47 @@ private fun StatusCard(state: MainUiState, actions: MainActions, onOpenSettings:
     }
 }
 
+private fun planLabel(plan: String): String = when (plan.lowercase()) {
+    "free" -> "Free"
+    "pro" -> "Pro"
+    else -> plan
+}
+
 @Composable
-private fun Banner(text: String, action: String, onAction: () -> Unit, container: Color, content: Color) {
+private fun AccountBanners(account: AccountUi, actions: MainActions) {
+    val errC = MaterialTheme.colorScheme.errorContainer
+    val errT = MaterialTheme.colorScheme.onErrorContainer
+    val tC = MaterialTheme.colorScheme.tertiaryContainer
+    val tT = MaterialTheme.colorScheme.onTertiaryContainer
+    if (account.revoked) {
+        Banner(stringResource(R.string.banner_revoked), stringResource(R.string.banner_repair), actions.openRepair, errC, errT)
+        return
+    }
+    if (account.suspended) {
+        Banner(stringResource(R.string.banner_suspended), null, {}, errC, errT)
+    }
+    when (account.issue) {
+        com.pocketotp.app.RelayState.Issue.QUOTA_EXCEEDED ->
+            Banner(stringResource(R.string.banner_quota), null, {}, tC, tT)
+        com.pocketotp.app.RelayState.Issue.NUMBER_NOT_ON_PLAN ->
+            Banner(
+                if (account.issueSlot > 0) stringResource(R.string.banner_not_on_plan_slot, account.issueSlot)
+                else stringResource(R.string.banner_not_on_plan),
+                null, {}, tC, tT,
+            )
+        else -> Unit
+    }
+}
+
+@Composable
+private fun Banner(text: String, action: String?, onAction: () -> Unit, container: Color, content: Color) {
     Surface(color = container, contentColor = content, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(text, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-            TextButton(onClick = onAction) { Text(action, color = content, fontWeight = FontWeight.SemiBold) }
+        Row(
+            Modifier.padding(start = 16.dp, end = if (action != null) 8.dp else 16.dp, top = 6.dp, bottom = 6.dp).heightIn(min = 40.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text, Modifier.weight(1f).padding(vertical = if (action != null) 0.dp else 6.dp), style = MaterialTheme.typography.bodyMedium)
+            if (action != null) TextButton(onClick = onAction) { Text(action, color = content, fontWeight = FontWeight.SemiBold) }
         }
     }
 }
@@ -358,7 +439,7 @@ private fun ForwardRows(items: List<HistoryItem>, showDate: Boolean) {
                     HistoryFormat.Outcome.BLOCKED -> HistoryFormat.blockedKeyword(item)
                         ?.let { stringResource(R.string.history_blocked_by, item.source.ifBlank { "—" }, it) }
                         ?: item.source
-                    HistoryFormat.Outcome.FAILED -> item.source + " · " + (item.reason ?: "")
+                    HistoryFormat.Outcome.FAILED -> item.source + " · " + failReason(item.reason)
                     HistoryFormat.Outcome.FORWARDED -> if (isRevealed) stringResource(R.string.history_revealed, item.source) else item.source
                 }
                 Text(sub.ifBlank { "—" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -366,6 +447,15 @@ private fun ForwardRows(items: List<HistoryItem>, showDate: Boolean) {
             Text(timeFmt.format(Date(item.timestamp)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+@Composable
+private fun failReason(reason: String?): String = when (reason) {
+    "quota_exceeded" -> stringResource(R.string.fail_quota)
+    "number_not_on_plan" -> stringResource(R.string.fail_not_on_plan)
+    "device_suspended" -> stringResource(R.string.fail_suspended)
+    "device_revoked" -> stringResource(R.string.fail_revoked)
+    else -> reason.orEmpty()
 }
 
 // ---------- History ----------
@@ -497,6 +587,9 @@ private fun SettingsScreen(state: MainUiState, actions: MainActions, padding: Pa
                     supportingText = { Text(stringResource(R.string.token_supporting)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
+                OutlinedButton(onClick = actions.scanQr, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.pair_scan))
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(onClick = { actions.saveConnection(endpoint, token); token = "" }, modifier = Modifier.weight(1f)) {
                         Text(stringResource(R.string.save))
@@ -510,29 +603,14 @@ private fun SettingsScreen(state: MainUiState, actions: MainActions, padding: Pa
 
         SectionLabel(stringResource(R.string.settings_device))
         OutlinedCardBox(Modifier.fillMaxWidth(), padded = false) {
-            CheckRow(
-                title = stringResource(R.string.check_permissions),
-                detail = stringResource(R.string.check_permissions_detail),
-                ok = state.missingPermissions.isEmpty(),
-                action = stringResource(R.string.action_grant),
-                onAction = actions.requestPermissions,
-            )
+            state.checks.forEachIndexed { i, check ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                ChecklistRow(check, onFix = { actions.fixCheck(check.id) })
+            }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            CheckRow(
-                title = stringResource(R.string.check_fullscreen),
-                detail = stringResource(R.string.check_fullscreen_detail),
-                ok = state.fullScreenAllowed,
-                action = stringResource(R.string.action_enable),
-                onAction = actions.openFullScreenSettings,
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            CheckRow(
-                title = stringResource(R.string.check_battery),
-                detail = stringResource(R.string.check_battery_detail),
-                ok = state.batteryUnrestricted,
-                action = stringResource(R.string.action_enable),
-                onAction = actions.openBatterySettings,
-            )
+            TextButton(onClick = actions.openOnboarding, modifier = Modifier.padding(horizontal = 6.dp)) {
+                Text(stringResource(R.string.settings_run_setup))
+            }
         }
 
         SectionLabel(stringResource(R.string.settings_privacy))
@@ -566,29 +644,4 @@ private fun SettingsScreen(state: MainUiState, actions: MainActions, padding: Pa
 @Composable
 private fun SectionLabel(text: String) {
     Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
-}
-
-@Composable
-private fun CheckRow(title: String, detail: String, ok: Boolean, action: String, onAction: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !ok, onClick = onAction)
-            .heightIn(min = 56.dp)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            Modifier.size(22.dp).background(if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (ok) Text("✓", color = MaterialTheme.colorScheme.onPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Medium)
-            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (!ok) TextButton(onClick = onAction) { Text(action) }
-    }
 }

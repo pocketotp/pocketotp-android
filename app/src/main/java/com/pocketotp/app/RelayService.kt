@@ -12,9 +12,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
@@ -119,11 +117,22 @@ class RelayService : Service() {
                     sleepQuiet(5_000)
                     continue
                 }
-                val connected = runWebSocket(prefs)
+                val result = runWebSocket(prefs)
                 if (!loop.get()) break
-                if (!connected) {
-                    setConnection("polling")
-                    runLongPoll(prefs)
+                when (result) {
+                    WsResult.REVOKED -> continue // token cleared; next pass goes offline
+                    WsResult.SUSPENDED -> {
+                        // Presence still works while suspended; keep it fresh so un-suspending is noticed.
+                        setConnection("suspended")
+                        postPresence(prefs, transport = null)
+                        sleepQuiet(60_000)
+                        continue
+                    }
+                    WsResult.FAILED -> {
+                        setConnection("polling")
+                        runLongPoll(prefs)
+                    }
+                    WsResult.OPENED -> Unit
                 }
                 if (!loop.get()) break
                 setConnection("reconnecting")
@@ -134,9 +143,14 @@ class RelayService : Service() {
         }, "pocketotp-socket").apply { isDaemon = true; start() }
     }
 
-    private fun runWebSocket(prefs: Preferences): Boolean {
-        val url = toWsUrl(prefs.endpoint) ?: return false
+    private enum class WsResult { OPENED, FAILED, REVOKED, SUSPENDED }
+
+    private fun runWebSocket(prefs: Preferences): WsResult {
+        val url = toWsUrl(prefs.endpoint) ?: return WsResult.FAILED
+        val token = prefs.token
         val opened = AtomicBoolean(false)
+        val revoked = AtomicBoolean(false)
+        val suspended = AtomicBoolean(false)
         val closed = AtomicBoolean(false)
         val latch = Object()
         val request = Request.Builder()
@@ -156,16 +170,24 @@ class RelayService : Service() {
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                if (RelayState.isRevokedClose(code, reason)) revoked.set(true)
                 webSocket.close(code, reason)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                if (RelayState.isRevokedClose(code, reason)) revoked.set(true)
                 closed.set(true)
                 synchronized(latch) { latch.notifyAll() }
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                Log.w(TAG, "websocket failure: ${t.javaClass.simpleName}")
+                val http = response?.code ?: 0
+                Log.w(TAG, "websocket failure: ${t.javaClass.simpleName} http=$http")
+                if (http in 400..499) {
+                    val error = RelayState.errorOf(runCatching { response?.peekBody(4096)?.string() }.getOrNull())
+                    if (RelayState.isRevoked(http, error)) revoked.set(true)
+                    if (RelayState.issueOf(http, error) == RelayState.Issue.DEVICE_SUSPENDED) suspended.set(true)
+                }
                 closed.set(true)
                 synchronized(latch) { latch.notifyAll() }
             }
@@ -173,10 +195,16 @@ class RelayService : Service() {
         val ws = client.newWebSocket(request, listener)
         webSocket = ws
         var lastBeat = 0L
+        var lastPresence = 0L
         while (loop.get() && !closed.get()) {
             if (opened.get() && System.currentTimeMillis() - lastBeat >= 25_000L) {
                 ws.send(helloPayload(prefs, type = "heartbeat").toString())
                 lastBeat = System.currentTimeMillis()
+            }
+            // Plan state (allowedSlots / suspended) only comes back on HTTP presence. Absent on the old relay.
+            if (opened.get() && System.currentTimeMillis() - lastPresence >= PRESENCE_EVERY_MS) {
+                lastPresence = System.currentTimeMillis()
+                postPresence(prefs, transport = null)
             }
             synchronized(latch) {
                 try { latch.wait(5_000) } catch (_: InterruptedException) { }
@@ -184,7 +212,18 @@ class RelayService : Service() {
         }
         try { ws.cancel() } catch (_: Exception) { }
         webSocket = null
-        return opened.get()
+        return when {
+            revoked.get() -> {
+                RelayEvents.revoked(this, token)
+                WsResult.REVOKED
+            }
+            suspended.get() -> {
+                Preferences(this).planSuspended = true
+                WsResult.SUSPENDED
+            }
+            opened.get() -> WsResult.OPENED
+            else -> WsResult.FAILED
+        }
     }
 
     @Volatile private var backoffFloor = 1_000L
@@ -193,7 +232,8 @@ class RelayService : Service() {
     private fun runLongPoll(prefs: Preferences) {
         val base = prefs.endpoint.trimEnd('/')
         if (base.isBlank()) return
-        postJson(prefs, "$base/phone/presence", helloPayload(prefs, type = "presence", transport = "poll"))
+        postPresence(prefs, transport = "poll")
+        if (prefs.token.isBlank()) return
         val deadline = System.currentTimeMillis() + 25_000
         while (loop.get() && System.currentTimeMillis() < deadline) {
             val url = "$base/phone/poll?timeout=20"
@@ -204,7 +244,12 @@ class RelayService : Service() {
                 .build()
             try {
                 pollClient.newCall(request).execute().use { resp ->
-                    if (!resp.isSuccessful) return
+                    if (!resp.isSuccessful) {
+                        val err = RelayState.errorOf(runCatching { resp.peekBody(4096).string() }.getOrNull())
+                        if (RelayState.isRevoked(resp.code, err)) RelayEvents.revoked(this@RelayService, prefs.token)
+                        if (RelayState.issueOf(resp.code, err) == RelayState.Issue.DEVICE_SUSPENDED) prefs.planSuspended = true
+                        return
+                    }
                     val body = resp.body?.string() ?: return
                     val json = JSONObject(body)
                     ConfirmManager.handleIncoming(this@RelayService, ConfirmRequest.parseList(json.optJSONArray("confirm_requests")))
@@ -218,18 +263,13 @@ class RelayService : Service() {
         }
     }
 
-    private fun postJson(prefs: Preferences, url: String, body: JSONObject) {
-        val media = "application/json; charset=utf-8".toMediaType()
-        val request = Request.Builder()
-            .url(url)
-            .header("Authorization", "Bearer ${prefs.token}")
-            .post(body.toString().toRequestBody(media))
-            .build()
-        try {
-            pollClient.newCall(request).execute().use { /* ignore body */ }
-        } catch (e: IOException) {
-            Log.w(TAG, "post failed: ${e.javaClass.simpleName}")
-        }
+    /** POST /phone/presence through [RelayHttp] (which also handles revoked / suspended) and apply plan fields. */
+    private fun postPresence(prefs: Preferences, transport: String?) {
+        val token = prefs.token
+        if (token.isBlank()) return
+        val payload = helloPayload(prefs, type = "presence", transport = transport).toString()
+        val resp = RelayHttp.postJson(prefs.endpoint, token, "/phone/presence", payload)
+        if (resp.ok) RelayEvents.onPresence(this, token, resp.body)
     }
 
     private fun handleSocketMessage(text: String) {
@@ -293,5 +333,6 @@ class RelayService : Service() {
         private const val CHANNEL_ID = "pocketotp_status"
         private const val STATUS_GROUP = "pocketotp_status"
         private const val NOTIFICATION_ID = 42
+        private const val PRESENCE_EVERY_MS = 10 * 60_000L
     }
 }

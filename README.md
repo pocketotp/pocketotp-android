@@ -29,6 +29,13 @@ Requires **Android 8.0** (API 26) or later. Dual-SIM phones are supported.
 | `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`, `USE_FULL_SCREEN_INTENT` | Persistent notification, connection, and send-confirmation alerts. |
 | `RECEIVE_BOOT_COMPLETED` | Restart after reboot if forwarding is enabled. |
 | `WAKE_LOCK` | Keep the connection from sleeping. |
+| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | One-tap battery-optimization exemption from the setup checklist. |
+| `SYSTEM_ALERT_WINDOW` | Optional. Granted manually; lets the send-confirmation screen open from the background on One UI. |
+| `CAMERA` | Optional. Only used by the QR pairing scanner. |
+
+## Pairing
+
+From 2.5.0 the app can pair by scanning a QR code (`pocketotp://pair?v=1&relay=…&code=…`). The code is short-lived and is exchanged for a per-device token at `POST {relay}/pair/claim`. See [docs/pairing.md](docs/pairing.md). Manual entry of relay URL + token is still supported.
 
 Google Play does not grant SMS permissions to ordinary apps, so this client is distributed as a sideloaded APK, not through Play.
 
