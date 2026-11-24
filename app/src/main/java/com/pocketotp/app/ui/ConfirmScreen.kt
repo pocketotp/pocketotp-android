@@ -87,10 +87,15 @@ fun ConfirmScreen(
     onDeny: () -> Unit,
     onAllow: () -> Unit,
     onClose: () -> Unit,
+    nowMs: Long? = null,
 ) {
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var now by remember { mutableLongStateOf(nowMs ?: System.currentTimeMillis()) }
     var elapsed by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
-    LaunchedEffect(request?.id) {
+    LaunchedEffect(request?.id, nowMs) {
+        if (nowMs != null) {
+            now = nowMs
+            return@LaunchedEffect
+        }
         while (true) {
             now = System.currentTimeMillis()
             elapsed = SystemClock.elapsedRealtime()
@@ -209,7 +214,7 @@ private fun RequestDetails(req: ConfirmRequest, now: Long) {
         }
     }
     DetailCard {
-        Label(stringResource(R.string.confirm_label_text, req.text.length, android.telephony.SmsMessage.calculateLength(req.text, false)[0]))
+        Label(stringResource(R.string.confirm_label_text, req.text.length, runCatching { android.telephony.SmsMessage.calculateLength(req.text, false)[0] }.getOrDefault(1)))
         SelectionContainer {
             Text(
                 req.text.ifBlank { "—" },
