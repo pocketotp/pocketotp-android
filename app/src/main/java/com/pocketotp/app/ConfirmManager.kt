@@ -70,6 +70,9 @@ object ConfirmManager {
 
     fun launchPendingIfForeground(context: Context) {
         val req = pendingRequests().firstOrNull() ?: return
+        // The background launch may have been blocked (BAL_BLOCK on One UI) even
+        // though it was attempted; opening PocketOTP must always surface it.
+        launchedActivities.remove(req.id)
         maybeLaunchConfirmActivity(context.applicationContext, req)
     }
 
