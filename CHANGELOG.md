@@ -5,7 +5,7 @@ The release workflow attaches the section for the tagged version to the GitHub R
 
 ## [2.5.1] - 2026-11-24
 
-First build signed with the PocketOTP release key (see [docs/verify-apk.md](docs/verify-apk.md)).
+First build signed with the PocketOTP release key (see [docs/verify-apk.md](https://github.com/pocketotp/pocketotp-android/blob/main/docs/verify-apk.md)).
 If you installed an earlier debug build, uninstall it first. Android won't update across different signing keys.
 Then install this APK and pair again by scanning the QR code.
 
@@ -22,7 +22,7 @@ Then install this APK and pair again by scanning the QR code.
 
 ### Added
 - First-run setup wizard with a live permission checklist and one-tap fixes: SMS, phone state, notifications, full-screen intent, battery optimisation, background pop-up, and Samsung "never sleeping apps" guidance.
-- QR pairing: `pocketotp://pair` deep link, in-app scanner, or a pasted link. A short-lived one-time code is exchanged for a per-device token after confirmation on the phone. See [docs/pairing.md](docs/pairing.md).
+- QR pairing: `pocketotp://pair` deep link, in-app scanner, or a pasted link. A short-lived one-time code is exchanged for a per-device token after confirmation on the phone. See [docs/pairing.md](https://github.com/pocketotp/pocketotp-android/blob/main/docs/pairing.md).
 
 ## [2.4.0] - 2026-11-23
 

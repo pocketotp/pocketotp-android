@@ -4,7 +4,7 @@ This file is kept **identical** in `pocketotp/pocketotp-relay` and `pocketotp/po
 Change it in both repos in the same PR pair.
 
 - Relay: implemented in `pocketotp-relay` (`src/auth.js` `createPairing` / `claimPairing`, tests in `test/pairing.test.js`).
-  Dev relay: `https://pocketotp-relay-dev.jimmymjing.workers.dev`.
+  Hosted relay: `https://relay.pocketotp.com`.
 - Android: implemented from **2.5.0** (`app/src/main/java/com/pocketotp/app/Pairing.kt`, tests in `PairingTest.kt`).
 
 ## Goals
