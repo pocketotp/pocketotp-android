@@ -93,7 +93,6 @@
             android:name=".ConfirmActionReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.pocketotp.app.CONFIRM_ALLOW" />
                 <action android:name="com.pocketotp.app.CONFIRM_DENY" />
             </intent-filter>
         </receiver>

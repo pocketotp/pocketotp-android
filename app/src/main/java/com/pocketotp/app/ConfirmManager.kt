@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap
  * until the user decides or [ConfirmRequest.expiresAt] is reached.
  */
 object ConfirmManager {
-    const val ACTION_ALLOW = "com.pocketotp.app.CONFIRM_ALLOW"
     const val ACTION_DENY = "com.pocketotp.app.CONFIRM_DENY"
     const val EXTRA_ID = "confirm_id"
     const val EXTRA_TO = "confirm_to"
@@ -33,6 +32,7 @@ object ConfirmManager {
     const val EXTRA_TEXT = "confirm_text"
     const val EXTRA_DRY_RUN = "confirm_dry_run"
     const val EXTRA_EXPIRES_AT = "confirm_expires_at"
+    const val EXTRA_CREATED_AT = "confirm_created_at"
 
     private const val TAG = "PocketOTP"
     private const val CHANNEL_ID = "pocketotp_confirm"
@@ -88,7 +88,7 @@ object ConfirmManager {
             text = intent.getStringExtra(EXTRA_TEXT).orEmpty(),
             textLength = intent.getStringExtra(EXTRA_TEXT)?.length ?: 0,
             dryRun = intent.getBooleanExtra(EXTRA_DRY_RUN, false),
-            createdAt = null,
+            createdAt = intent.getStringExtra(EXTRA_CREATED_AT),
             expiresAt = expiresAt,
             expiresAtMs = ConfirmRequest.parseIsoMillis(expiresAt),
         )
@@ -103,6 +103,7 @@ object ConfirmManager {
             .putExtra(EXTRA_TEXT, req.text)
             .putExtra(EXTRA_DRY_RUN, req.dryRun)
             .putExtra(EXTRA_EXPIRES_AT, req.expiresAt)
+            .putExtra(EXTRA_CREATED_AT, req.createdAt)
     }
 
     fun submitDecision(context: Context, id: String, decision: String): ConfirmClient.Result {
@@ -255,12 +256,6 @@ object ConfirmManager {
             confirmIntent(context, req),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val allowIntent = PendingIntent.getBroadcast(
-            context,
-            requestCode(req.id, "allow"),
-            putExtras(Intent(context, ConfirmActionReceiver::class.java).setAction(ACTION_ALLOW), req),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
         val denyIntent = PendingIntent.getBroadcast(
             context,
             requestCode(req.id, "deny"),
@@ -289,7 +284,7 @@ object ConfirmManager {
             .setContentIntent(contentIntent)
             .setFullScreenIntent(contentIntent, true)
             .setTimeoutAfter(((req.expiresAtMs ?: (System.currentTimeMillis() + 5 * 60_000L)) - System.currentTimeMillis()).coerceAtLeast(1_000L))
-            .addAction(0, context.getString(R.string.confirm_allow), allowIntent)
+            // Deny only: allowing requires the full confirm screen and a 1 s hold.
             .addAction(0, context.getString(R.string.confirm_deny), denyIntent)
             .build()
         try {

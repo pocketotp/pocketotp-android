@@ -36,12 +36,7 @@
     <string name="confirm_title_dry">确认试发送（不会真正发出）</string>
     <string name="confirm_line">发给 %1$s · %2$s</string>
     <string name="confirm_big_text">发给 %1$s\n卡：%2$s\n%3$s\n截止：%4$s</string>
-    <string name="confirm_allow">允许</string>
     <string name="confirm_deny">拒绝</string>
-    <string name="confirm_detail_to">收件人：%1$s</string>
-    <string name="confirm_detail_to_full">收件人：%1$s（%2$s）</string>
-    <string name="confirm_detail_sim">卡：%1$s</string>
-    <string name="confirm_detail_expires">截止：%1$s</string>
     <string name="confirm_detail_dry">这是试发送，确认后也不会真正发出短信。</string>
     <string name="confirm_allowed">已允许，等待发出</string>
     <string name="confirm_denied">已拒绝发送</string>
@@ -50,4 +45,20 @@
     <string name="confirm_rate_limited">发送次数已达上限，请稍后再允许</string>
     <string name="confirm_failed">确认请求失败，请重试</string>
     <string name="confirm_missing">找不到这条确认请求</string>
+    <string name="confirm_heading">助手请求发送短信</string>
+    <string name="confirm_subtitle">核对收件人、卡和内容。不确定就拒绝。</string>
+    <string name="confirm_label_to">发给</string>
+    <string name="confirm_to_other_sim">本机的另一张卡</string>
+    <string name="confirm_to_full">完整号码：%1$s</string>
+    <string name="confirm_label_sim">用哪张卡</string>
+    <string name="confirm_sim_slot">卡 %1$d</string>
+    <string name="confirm_label_text">短信内容（%1$d 个字符 · %2$d 条）</string>
+    <string name="confirm_footer">超时会自动拒绝，正文随即从服务端删除。</string>
+    <string name="confirm_deny_primary">拒绝，不发送</string>
+    <string name="confirm_hold_allow">长按 1 秒允许发送</string>
+    <string name="confirm_hold_allow_dry">长按 1 秒允许试发送</string>
+    <string name="confirm_hold_continue">继续按住…</string>
+    <string name="confirm_countdown_desc">剩余 %1$s</string>
+    <string name="confirm_close">关闭</string>
+    <string name="confirm_expired_detail">这条请求已经失效，没有发出任何短信。</string>
 </resources>
