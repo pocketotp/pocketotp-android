@@ -7,11 +7,9 @@ import android.content.Intent
 class ConfirmActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val id = intent.getStringExtra(ConfirmManager.EXTRA_ID) ?: return
-        val decision = when (intent.action) {
-            ConfirmManager.ACTION_ALLOW -> "allow"
-            ConfirmManager.ACTION_DENY -> "deny"
-            else -> return
-        }
+        // Notifications can only deny. Allow is reachable solely from ConfirmActivity.
+        if (intent.action != ConfirmManager.ACTION_DENY) return
+        val decision = "deny"
         val pending = goAsync()
         Thread({
             try {

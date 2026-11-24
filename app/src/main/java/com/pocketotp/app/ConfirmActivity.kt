@@ -1,104 +1,110 @@
 package com.pocketotp.app
 
+import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import com.pocketotp.app.databinding.ActivityConfirmBinding
+import android.os.SystemClock
+import android.view.MotionEvent
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
+import com.pocketotp.app.ui.ConfirmScreen
+import com.pocketotp.app.ui.PocketOtpTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-class ConfirmActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityConfirmBinding
-    private var request: ConfirmRequest? = null
-    private var busy = false
+class ConfirmActivity : ComponentActivity() {
+    private var request by mutableStateOf<ConfirmRequest?>(null)
+    private var busy by mutableStateOf(false)
+    private var active by mutableStateOf(false)
+    private var openedAt by mutableLongStateOf(0L)
+    private var obscured by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityConfirmBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        WindowInsetsPad.apply(this, binding.root)
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        binding.toolbar.setNavigationOnClickListener { finish() }
-        bindRequest(ConfirmManager.requestFromIntent(intent))
-        binding.btnAllow.setOnClickListener { decide("allow") }
-        binding.btnDeny.setOnClickListener { decide("deny") }
+        enableEdgeToEdge()
+        bindRequest(intent)
+        setContent {
+            PocketOtpTheme {
+                BackHandler {
+                    if (request == null || request?.isExpired() == true) finish()
+                    else decide("deny")
+                }
+                ConfirmScreen(
+                    request = request,
+                    busy = busy,
+                    active = active,
+                    obscured = obscured,
+                    openedAt = openedAt,
+                    onDeny = { decide("deny") },
+                    onAllow = { decide("allow") },
+                    onClose = { finish() },
+                )
+            }
+        }
     }
 
-    override fun onNewIntent(intent: android.content.Intent) {
+    override fun onResume() {
+        super.onResume()
+        // Returning to this screen always resets the accidental-touch guard.
+        openedAt = SystemClock.elapsedRealtime()
+        active = true
+    }
+
+    override fun onPause() {
+        active = false // Cancels any in-flight hold when another window takes focus.
+        super.onPause()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        active = hasFocus && lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)
+        if (hasFocus) openedAt = SystemClock.elapsedRealtime()
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        // A touch that passed through another app's overlay can still deny, never allow.
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            obscured = event.flags and MotionEvent.FLAG_WINDOW_IS_OBSCURED != 0
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        bindRequest(ConfirmManager.requestFromIntent(intent))
+        bindRequest(intent)
     }
 
-    private fun bindRequest(req: ConfirmRequest?) {
-        request = req
-        if (req == null) {
-            binding.txtTitle.setText(R.string.confirm_missing)
-            binding.txtBody.text = ""
-            binding.btnAllow.isEnabled = false
-            binding.btnDeny.isEnabled = false
-            return
-        }
-        if (req.isExpired()) {
-            binding.txtTitle.setText(R.string.confirm_expired)
-            binding.txtBody.text = details(req)
-            binding.btnAllow.isEnabled = false
-            binding.btnDeny.isEnabled = false
-            return
-        }
-        binding.txtTitle.setText(if (req.dryRun) R.string.confirm_title_dry else R.string.confirm_title)
-        binding.txtBody.text = details(req)
-        binding.btnAllow.isEnabled = true
-        binding.btnDeny.isEnabled = true
-    }
-
-    private fun details(req: ConfirmRequest): String {
-        val numberLine = if (req.to.isNotBlank() && req.to != req.toMasked) {
-            getString(R.string.confirm_detail_to_full, ConfirmManager.displayNumber(req), req.to)
-        } else {
-            getString(R.string.confirm_detail_to, ConfirmManager.displayNumber(req))
-        }
-        return buildString {
-            append(numberLine)
-            append('\n')
-            append(getString(R.string.confirm_detail_sim, req.simLabel.ifBlank { "—" }))
-            append('\n')
-            append(getString(R.string.confirm_detail_expires, ConfirmManager.formatExpiry(req)))
-            if (req.dryRun) {
-                append('\n')
-                append(getString(R.string.confirm_detail_dry))
-            }
-            append("\n\n")
-            append(req.text.ifBlank { "—" })
-        }
+    private fun bindRequest(intent: Intent?) {
+        request = ConfirmManager.requestFromIntent(intent)
+        openedAt = SystemClock.elapsedRealtime()
     }
 
     private fun decide(decision: String) {
         val req = request ?: return
-        if (busy) return
-        if (req.isExpired()) {
-            Toast.makeText(this, getString(R.string.confirm_expired), Toast.LENGTH_SHORT).show()
-            bindRequest(req)
-            return
-        }
+        if (busy || req.isExpired()) return
+        if (decision == "allow" && (!active || obscured || !ConfirmUiPolicy.canAllow(
+                req.expiresAtMs, System.currentTimeMillis(),
+                SystemClock.elapsedRealtime() - openedAt, busy,
+            ))) return
         busy = true
-        binding.btnAllow.isEnabled = false
-        binding.btnDeny.isEnabled = false
-        binding.progress.visibility = View.VISIBLE
-        Thread({
-            val result = ConfirmManager.submitDecision(this, req.id, decision)
-            runOnUiThread {
-                busy = false
-                binding.progress.visibility = View.GONE
-                val keepOpen = result.error == "rate_limited_hour" || result.error == "rate_limited_day" ||
-                    (!result.ok && result.error != "expired" && result.error != "not_awaiting_confirmation")
-                if (keepOpen) {
-                    binding.btnAllow.isEnabled = true
-                    binding.btnDeny.isEnabled = true
-                } else {
-                    finish()
-                }
+        lifecycleScope.launch {
+            // Existing confirmation client/protocol, deliberately unchanged.
+            val result = withContext(Dispatchers.IO) {
+                ConfirmManager.submitDecision(applicationContext, req.id, decision)
             }
-        }, "pocketotp-confirm-ui").start()
+            busy = false
+            val keepOpen = !result.ok && result.error != "expired" &&
+                result.error != "not_awaiting_confirmation"
+            // A different pending request may have arrived during the network operation.
+            if (!keepOpen && request?.id == req.id) finish()
+        }
     }
 }
