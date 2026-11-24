@@ -3,6 +3,11 @@
 All notable changes to the PocketOTP Android app. Versions match `versionName`. Release tags are `v<version>`.
 The release workflow attaches the section for the tagged version to the GitHub Release.
 
+## [Unreleased]
+
+### Fixed
+- Permission rows on onboarding and in Settings: the "Recommended" badge no longer wraps one letter per line when the title is long or the screen is narrow. The badge stays on a single line and moves under the title when it does not fit.
+
 ## [2.5.1] - 2026-11-24
 
 First build signed with the PocketOTP release key (see [docs/verify-apk.md](https://github.com/pocketotp/pocketotp-android/blob/main/docs/verify-apk.md)).
