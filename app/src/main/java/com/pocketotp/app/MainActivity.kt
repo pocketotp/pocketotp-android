@@ -1,72 +1,92 @@
 package com.pocketotp.app
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.core.net.toUri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
-import com.pocketotp.app.databinding.ActivityMainBinding
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import androidx.lifecycle.lifecycleScope
+import com.pocketotp.app.ui.MainActions
+import com.pocketotp.app.ui.MainApp
+import com.pocketotp.app.ui.MainUiState
+import com.pocketotp.app.ui.PocketOtpTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-class MainActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityMainBinding
+class MainActivity : ComponentActivity() {
     private lateinit var prefs: Preferences
+    private var uiState by mutableStateOf<MainUiState?>(null)
+    private var sims: List<SimSlot> = emptyList()
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { refreshPermissionState() }
+    ) { refresh(reloadSims = true) }
 
-    private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        when (key) {
-            Preferences.KEY_HISTORY -> runOnUiThread { renderHistory() }
-            Preferences.KEY_SENDS -> runOnUiThread { renderSends() }
-            Preferences.KEY_CONNECTION -> runOnUiThread { renderConnection() }
-        }
+    private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+        runOnUiThread { refresh() }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        // Keep codes out of the recent-apps thumbnail.
+        if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(false)
         prefs = Preferences(this)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        WindowInsetsPad.apply(this, binding.root)
-        setSupportActionBar(binding.toolbar)
-
         applyConfigFromIntent()
-        bindUiFromPrefs()
-        refreshPermissionState()
         requestNotificationPermissionIfNeeded()
-        renderHistory()
-        renderSends()
-        renderConnection()
         syncRelayService()
-
-        binding.switchEnabled.setOnCheckedChangeListener { _, checked ->
-            prefs.enabled = checked
-            syncRelayService()
-            toast(if (checked) getString(R.string.enabled_on) else getString(R.string.enabled_off))
-        }
-        binding.btnSave.setOnClickListener { saveForm() }
-        binding.btnRequestPerms.setOnClickListener { requestNeededPermissions() }
-        binding.btnTest.setOnClickListener { runTestUpload() }
-        binding.btnSendSmsStub.setOnClickListener {
-            toast(getString(R.string.send_sms_stub_toast))
+        refresh(reloadSims = true)
+        val initialTab = intent?.getIntExtra(EXTRA_TAB, 0) ?: 0
+        val actions = MainActions(
+            setEnabled = { checked ->
+                prefs.enabled = checked
+                syncRelayService()
+                toast(getString(if (checked) R.string.enabled_on else R.string.enabled_off))
+            },
+            saveConnection = { endpoint, newToken -> saveConnection(endpoint, newToken) },
+            saveBlacklist = { text ->
+                prefs.blacklistText = text
+                toast(getString(R.string.saved))
+            },
+            testUpload = { runTestUpload() },
+            requestPermissions = { requestNeededPermissions() },
+            openBatterySettings = { openSettings(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS) },
+            openFullScreenSettings = {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    openSettings(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, "package:$packageName".toUri())
+                }
+            },
+            openPendingConfirm = { ConfirmManager.launchPendingIfForeground(this) },
+        )
+        setContent {
+            PocketOtpTheme {
+                uiState?.let { MainApp(it, actions, initialTab) }
+            }
         }
     }
 
-    override fun onNewIntent(intent: android.content.Intent) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         if (applyConfigFromIntent()) {
-            bindUiFromPrefs()
             syncRelayService()
+            refresh()
             toast(getString(R.string.configured_via_adb))
         }
     }
@@ -74,16 +94,41 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         prefs.register(prefListener)
-        refreshPermissionState()
-        renderHistory()
-        renderSends()
-        renderConnection()
+        refresh(reloadSims = true)
         ConfirmManager.launchPendingIfForeground(this)
     }
 
     override fun onPause() {
         prefs.unregister(prefListener)
         super.onPause()
+    }
+
+    private fun refresh(reloadSims: Boolean = false) {
+        if (reloadSims) {
+            lifecycleScope.launch {
+                sims = withContext(Dispatchers.IO) { runCatching { SimInfo.list(applicationContext) }.getOrDefault(emptyList()) }
+                refresh()
+            }
+        }
+        val power = getSystemService(PowerManager::class.java)
+        val nm = getSystemService(NotificationManager::class.java)
+        uiState = MainUiState(
+            enabled = prefs.enabled,
+            configured = prefs.endpoint.isNotBlank() && prefs.token.isNotBlank(),
+            connection = prefs.connectionState,
+            endpoint = prefs.endpoint,
+            tokenSaved = prefs.token.isNotBlank(),
+            blacklist = prefs.blacklistText,
+            history = prefs.history(),
+            sends = prefs.sends(),
+            sims = sims,
+            missingPermissions = missingPermissions().toList(),
+            batteryUnrestricted = power?.isIgnoringBatteryOptimizations(packageName) == true,
+            fullScreenAllowed = if (Build.VERSION.SDK_INT >= 34) nm?.canUseFullScreenIntent() == true else true,
+            pendingConfirms = ConfirmManager.pendingRequests().size,
+            versionName = BuildConfig.VERSION_NAME,
+            nowMs = System.currentTimeMillis(),
+        )
     }
 
     private fun applyConfigFromIntent(): Boolean {
@@ -112,30 +157,21 @@ class MainActivity : AppCompatActivity() {
         return changed
     }
 
-    private fun bindUiFromPrefs() {
-        binding.inputEndpoint.setText(prefs.endpoint)
-        binding.inputToken.setText(prefs.token)
-        binding.inputBlacklist.setText(prefs.blacklistText)
-        binding.switchEnabled.setOnCheckedChangeListener(null)
-        binding.switchEnabled.isChecked = prefs.enabled
-        binding.switchEnabled.setOnCheckedChangeListener { _, checked ->
-            prefs.enabled = checked
-            syncRelayService()
-            toast(if (checked) getString(R.string.enabled_on) else getString(R.string.enabled_off))
+    private fun saveConnection(endpoint: String, newToken: String) {
+        val trimmed = endpoint.trim()
+        if (trimmed.isNotEmpty() && !trimmed.startsWith("https://")) {
+            toast(getString(R.string.endpoint_https_required))
+            return
         }
-    }
-
-    private fun saveForm() {
-        prefs.endpoint = binding.inputEndpoint.text?.toString().orEmpty()
-        prefs.token = binding.inputToken.text?.toString().orEmpty()
-        prefs.blacklistText = binding.inputBlacklist.text?.toString().orEmpty()
-        prefs.enabled = binding.switchEnabled.isChecked
+        prefs.endpoint = trimmed
+        // The saved token is never shown; a blank field keeps it.
+        if (newToken.isNotBlank()) prefs.token = newToken
         syncRelayService()
+        refresh()
         toast(getString(R.string.saved))
     }
 
     private fun runTestUpload() {
-        saveForm()
         if (prefs.endpoint.isBlank() || prefs.token.isBlank()) {
             toast(getString(R.string.need_endpoint_token))
             return
@@ -148,9 +184,9 @@ class MainActivity : AppCompatActivity() {
             token = prefs.token,
             payload = RelayClient.Payload(
                 code = extracted.code ?: "123456",
-                sender = "SMS-Relay-Test",
+                sender = "PocketOTP-Test",
                 brand = extracted.brand ?: "测试",
-                source = "测试 / SMS-Relay-Test",
+                source = "测试 / PocketOTP-Test",
                 body = body,
                 timestamp = System.currentTimeMillis(),
                 subscriptionId = null,
@@ -162,21 +198,6 @@ class MainActivity : AppCompatActivity() {
         toast(getString(R.string.test_queued))
     }
 
-    private fun renderHistory() {
-        val items = prefs.history()
-        if (items.isEmpty()) {
-            binding.txtHistory.text = getString(R.string.history_empty)
-            return
-        }
-        val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-        binding.txtHistory.text = items.joinToString("\n") { item ->
-            val time = fmt.format(Date(item.timestamp))
-            val mark = if (item.skipped) "⏭" else "✓"
-            val extra = item.reason?.let { " ($it)" } ?: ""
-            "$mark $time  ${item.code}  ·  ${item.source}$extra"
-        }
-    }
-
     private fun neededPermissions(): Array<String> {
         val list = mutableListOf(
             Manifest.permission.RECEIVE_SMS,
@@ -185,9 +206,7 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.READ_PHONE_STATE,
             Manifest.permission.READ_PHONE_NUMBERS,
         )
-        if (Build.VERSION.SDK_INT >= 33) {
-            list.add(Manifest.permission.POST_NOTIFICATIONS)
-        }
+        if (Build.VERSION.SDK_INT >= 33) list.add(Manifest.permission.POST_NOTIFICATIONS)
         return list.toTypedArray()
     }
 
@@ -195,17 +214,6 @@ class MainActivity : AppCompatActivity() {
         neededPermissions().filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }.toTypedArray()
-
-    private fun refreshPermissionState() {
-        val missing = missingPermissions()
-        binding.txtPerms.text = if (missing.isEmpty()) {
-            getString(R.string.perms_granted)
-        } else {
-            getString(R.string.perms_missing, missing.joinToString(", ") { it.substringAfterLast('.') })
-        }
-        binding.btnRequestPerms.visibility =
-            if (missing.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
-    }
 
     private fun requestNeededPermissions() {
         val missing = missingPermissions()
@@ -215,40 +223,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT < 33) return
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
         permissionLauncher.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+    }
+
+    private fun openSettings(action: String, data: Uri? = null) {
+        try {
+            startActivity(Intent(action).apply { if (data != null) setData(data) })
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri()))
+        }
     }
 
     private fun toast(msg: String) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-    }
-
-
-    private fun renderSends() {
-        val items = prefs.sends()
-        if (items.isEmpty()) {
-            binding.txtSends.text = getString(R.string.sends_empty)
-            return
-        }
-        val fmt = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
-        binding.txtSends.text = items.joinToString("\n") { item ->
-            val time = fmt.format(java.util.Date(item.timestamp))
-            val extra = item.error?.let { " ($it)" } ?: ""
-            "${item.status}  $time  ${item.toMasked}  ·  ${item.simLabel}$extra"
-        }
-    }
-
-    private fun renderConnection() {
-        binding.txtConnection.text = when (prefs.connectionState) {
-            "websocket" -> getString(R.string.connection_websocket)
-            "polling" -> getString(R.string.connection_polling)
-            "reconnecting" -> getString(R.string.connection_reconnecting)
-            else -> getString(R.string.connection_offline)
-        }
     }
 
     private fun syncRelayService() {
@@ -263,5 +251,6 @@ class MainActivity : AppCompatActivity() {
         const val EXTRA_ENDPOINT = "endpoint"
         const val EXTRA_TOKEN = "token"
         const val EXTRA_ENABLED = "enabled"
+        const val EXTRA_TAB = "tab"
     }
 }
