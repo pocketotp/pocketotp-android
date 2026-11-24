@@ -1,6 +1,6 @@
 # PocketOTP for Android
 
-Pre-release Android app that forwards SMS verification codes from **your own phone** to a hosted PocketOTP relay, so an AI agent can read them and, when asked, send a text from a chosen SIM.
+Pre-release Android app that forwards SMS verification codes from **your own phone** to a hosted PocketOTP relay, (hosted service: [pocketotp.com](https://pocketotp.com), relay `https://relay.pocketotp.com`) so an AI agent can read them and, when asked, send a text from a chosen SIM.
 
 This repository is the Android client only. The relay server is a **hosted, closed-source** service. You paste the service URL and an access token into the app; neither is stored in this repo.
 
@@ -54,3 +54,27 @@ Do not commit tokens, `local.properties`, keystores, or APKs.
 ## License
 
 The Android app is licensed under the [Apache License 2.0](LICENSE). The hosted PocketOTP relay is not open source.
+
+## Releases and signing
+
+Official APKs are built by `.github/workflows/release.yml` when a `v<versionName>` tag is pushed. The workflow:
+
+1. runs the unit tests;
+2. builds `assembleRelease`, signed with the PocketOTP release key from repository secrets;
+3. checks the signing certificate;
+4. attaches `pocketotp-<version>.apk` and its `.sha256` to a GitHub Release, using the matching `CHANGELOG.md` section as notes.
+
+Check a download with [docs/verify-apk.md](docs/verify-apk.md). Release certificate SHA-256:
+`7F:CA:5C:4E:36:08:17:1F:85:91:3E:C4:C8:A0:18:AF:94:C5:D9:64:2A:88:8D:F6:FF:CC:28:0E:88:C3:4D:DF`.
+
+To build a signed release locally, point Gradle at a properties file outside the repo:
+
+```sh
+POCKETOTP_KEYSTORE_PROPERTIES=/path/to/keystore.properties ./gradlew assembleRelease
+```
+
+The file holds `storeFile`, `storePassword`, `keyAlias` and `keyPassword`. CI uses the env vars `POCKETOTP_KEYSTORE_FILE`, `POCKETOTP_KEYSTORE_PASSWORD`, `POCKETOTP_KEY_ALIAS` and `POCKETOTP_KEY_PASSWORD` instead. Without either, the release APK is unsigned. `scripts/set-release-secrets.sh` uploads the secrets without printing them.
+
+R8 shrinking is off by default. `-Ppocketotp.minify=true` builds a minified APK (about 3 MB instead of 12 MB), but that build hasn't been tested on a device yet.
+
+To cut a release: bump `versionCode`/`versionName`, add a `CHANGELOG.md` section, merge, then `git tag v<version> && git push origin v<version>`.
