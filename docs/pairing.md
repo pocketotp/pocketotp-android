@@ -1,6 +1,11 @@
-# PocketOTP pairing contract (v1)
+# PocketOTP pairing contract (v1) — canonical
 
-This describes how the hosted multi-user relay pairs a phone with an account using a QR code. The Android client implements it starting in **2.5.0** (`app/src/main/java/com/pocketotp/app/Pairing.kt`, tests in `PairingTest.kt`). The relay side is not built yet. This document is the contract it should implement.
+This file is kept **identical** in `pocketotp/pocketotp-relay` and `pocketotp/pocketotp-android`.
+Change it in both repos in the same PR pair.
+
+- Relay: implemented in `pocketotp-relay` (`src/auth.js` `createPairing` / `claimPairing`, tests in `test/pairing.test.js`).
+  Dev relay: `https://pocketotp-relay-dev.jimmymjing.workers.dev`.
+- Android: implemented from **2.5.0** (`app/src/main/java/com/pocketotp/app/Pairing.kt`, tests in `PairingTest.kt`).
 
 ## Goals
 
@@ -8,43 +13,57 @@ This describes how the hosted multi-user relay pairs a phone with an account usi
 - **One token per device.** Each paired phone can be listed, rate-limited and revoked on its own.
 - **Manual entry stays.** Self-hosted / legacy relays keep working with relay URL + bearer token. The debug `com.pocketotp.app.CONFIGURE` intent also stays.
 
-## 1. Pairing link (QR payload)
+## 1. Getting a code (account owner, web console)
+
+`POST {relay}/v1/pairing` with `Authorization: Bearer <session token>` (the web console does this):
+
+```json
+{
+  "ok": true,
+  "code": "7K3M-Q9TD-2XHF",
+  "expiresAt": "2026-11-24T08:40:00.000Z",
+  "exp": 1795509600,
+  "relay": "https://relay.pocketotp.com",
+  "qr": "pocketotp://pair?v=1&relay=https%3A%2F%2Frelay.pocketotp.com&code=7K3M-Q9TD-2XHF&exp=1795509600"
+}
+```
+
+- Creating a new code invalidates the previous unused code of the same account.
+- `402 device_limit` if the account is already at its device limit (Free 1, Pro 3). Max 20 codes / hour / account.
+
+## 2. Pairing link (QR payload)
 
 ```
 pocketotp://pair?v=1&relay=<url-encoded https base URL>&code=<pairing code>[&exp=<unix seconds>]
 ```
 
-Example:
-
-```
-pocketotp://pair?v=1&relay=https%3A%2F%2Frelay.pocketotp.com&code=7K3M-Q9TD-2XHF&exp=1764000600
-```
-
 | Param | Required | Rules |
 |---|---|---|
-| `v` | no (defaults to `1`) | Integer. The app rejects any other version and asks the user to update. Bump it only for incompatible changes. |
-| `relay` | yes | Absolute **https** URL with a host and no userinfo, query or fragment. A path is allowed (e.g. `https://relay.pocketotp.com/v1`). The app strips a trailing `/`. |
-| `code` | yes | Pairing code, see §2. Dashes and spaces are ignored. |
-| `exp` | no | Unix seconds. Informational: the app rejects a link already past `exp` without calling the relay. The relay must still enforce expiry itself. |
+| `v` | no (defaults to `1`) | Integer. The app rejects any other version and asks the user to update. The relay always emits `v=1`. Bump only for incompatible changes. |
+| `relay` | yes | Absolute **https** URL with a host and no userinfo, query or fragment. A path is allowed. The app strips a trailing `/`. The hosted relay serves everything at the root, so it emits no path. |
+| `code` | yes | Pairing code, see §3. Dashes and spaces are ignored. The relay emits the grouped form `XXXX-XXXX-XXXX`. |
+| `exp` | no | Unix seconds. The relay always emits it. Informational: the app rejects a link already past `exp` without calling the relay. The relay enforces expiry itself. |
 
 - Unknown parameters are ignored. If a parameter repeats, the first one wins.
 - Scheme and host are matched case-insensitively.
-- The app registers `pocketotp://pair` as a BROWSABLE deep link. Scanning the QR with the system camera opens PocketOTP directly. The in-app scanner (ZXing, no Google Play services needed) and a "paste link" field accept the same string.
-- **The app never claims automatically.** It always shows a confirmation dialog with the relay host and the code. It warns when an existing configuration would be replaced.
-- Keep the QR at error-correction level M or higher. The whole link should stay under ~200 characters.
+- The app registers `pocketotp://pair` as a BROWSABLE deep link; the in-app scanner (ZXing) and a "paste link" field accept the same string.
+- **The app never claims automatically.** It always shows a confirmation dialog with the relay host and the code, and warns when an existing configuration would be replaced.
+- QR error-correction level M or higher; link stays under ~200 characters (the hosted relay's link is ~110).
 
-## 2. Pairing code
+## 3. Pairing code
 
 - Alphabet: Crockford base32 without `I L O U`: `0123456789ABCDEFGHJKMNPQRSTVWXYZ`.
-- Length: the client accepts 8–16 characters. The relay **should issue 12** (60 bits), shown grouped by 4 (`7K3M-Q9TD-2XHF`) for manual typing.
-- The client upper-cases, strips `-` and spaces, and maps look-alikes `O→0`, `I→1`, `L→1` before sending. The relay should normalise the same way.
-- **Single use**, **TTL 10 minutes** (recommended).
-- Store only a hash (e.g. SHA-256 of the normalised code). Bind it to the account that generated it.
-- Rate-limit claims, for example 10 per IP per 10 minutes plus a global failure budget per code prefix, and lock a code after 5 failed attempts against it.
+- The relay issues **12 characters** (60 bits), displayed as `XXXX-XXXX-XXXX`. Both sides accept 8–16 characters.
+- Normalisation (both sides): upper-case, strip `-` and whitespace, map look-alikes `O→0`, `I→1`, `L→1`. Anything else outside the alphabet is rejected.
+- **Single use**, **TTL 10 minutes**.
+- The relay stores only SHA-256 of the normalised code, bound to the account that created it.
+- Claims are rate-limited to **10 per IP per 10 minutes** (`429` + `Retry-After: 600`). With 60-bit codes, a 10-minute TTL and one live code per account, brute force is not practical, so there is no per-code lockout (a wrong code doesn't identify which code it was aimed at).
 
-## 3. Claim: `POST {relay}/pair/claim`
+## 4. Claim: `POST {relay}/pair/claim`
 
-No `Authorization` header. JSON body sent by the app:
+No `Authorization` header. `POST /v1/pair/exchange` is a deprecated alias with identical behaviour.
+
+Request (as sent by the app):
 
 ```json
 {
@@ -60,55 +79,92 @@ No `Authorization` header. JSON body sent by the app:
 }
 ```
 
+`v` is optional (default 1). `device` is optional; the relay uses `name` (falls back to `model`) as the display
+name, records `appVersion`, and seeds `caps` so confirm-before-send is ready before the first heartbeat.
+The legacy flat form `{ "code", "deviceName", "appVersion" }` is also accepted.
+
 ### Success — `200`
 
 ```json
 {
-  "token": "<device bearer token>",
-  "deviceId": "dev_01J…",
+  "ok": true,
+  "token": "pk_dev_…",
+  "deviceId": "dev_…",
   "relay": "https://relay.pocketotp.com",
-  "account": { "label": "Jimmy" }
+  "account": { "label": "ji***@gmail.com", "plan": "free" },
+  "limits": { "devices": 1, "numbers": 1, "codesPerMonth": 50, "sendsPerDay": 10 },
+  "deviceToken": "pk_dev_…"
 }
 ```
 
-- `token` (required): long-lived bearer token for this device only. The app uses it exactly like today's token: `Authorization: Bearer <token>` on `/sms`, `/phone/*`, and the WebSocket. Store only a hash server-side.
-- `deviceId` (optional): stored by the app, used for display and future revocation UX.
-- `relay` (optional): canonical base URL. **The app accepts it only if its host equals the host in the QR**, otherwise it keeps the QR's `relay`. This prevents a reply from redirecting the device to another server.
-- `account.label` (optional): shown to the user.
-- After a successful claim the code is consumed. A second claim with the same code must fail.
+- `token` (required): long-lived bearer token for this device only, used as `Authorization: Bearer <token>` on `/sms`, `/phone/*` and the WebSocket. The relay stores only its hash. (`deviceToken` repeats it for older clients.)
+- `deviceId`: stored by the app for display and revocation UX.
+- `relay`: canonical base URL. **The app accepts it only if its host equals the host in the QR**, otherwise it keeps the QR's `relay`.
+- `account.label`: masked account email, shown to the user. `account.plan` and `limits` are informational.
+- The code is consumed; a second claim with the same code fails with `410 code_expired`.
 
 ### Errors
 
-Return JSON `{"error": "<code>"}` with these statuses. The app maps them to Chinese messages; it also shows unknown codes, just less specifically.
+JSON `{"ok": false, "error": "<code>"}`:
 
 | HTTP | `error` | Meaning |
 |---|---|---|
-| 400 | `bad_request` | Malformed body / unsupported `v`. |
-| 404 | `code_invalid` | No such code (do not distinguish from used). |
-| 410 | `code_expired` | Code past TTL, or already used. |
-| 429 | `rate_limited` | Too many attempts. Optionally send `Retry-After`. |
-| 5xx | any | The app shows a generic failure and lets the user retry. |
+| 400 | `bad_request` | Malformed JSON / body, unsupported `v`, code not 8–16 alphabet characters. |
+| 402 | `device_limit` | The account already has its maximum number of phones (Free 1, Pro 3). |
+| 404 | `code_invalid` | No such code. |
+| 410 | `code_expired` | Code past its TTL, or already used. |
+| 429 | `rate_limited` | Too many attempts; `Retry-After` in seconds. |
+| 5xx | any | Generic failure; the user may retry. |
 
-## 4. After pairing
+## 5. After pairing
 
-- The app saves relay + token (+ deviceId), turns forwarding on, and starts the foreground service. It then connects as usual and advertises `caps:["confirm"]`.
-- **Revocation:** when the relay revokes a device, it should reject that token with `401 {"error":"device_revoked"}` (HTTP and WebSocket). The app will surface re-pairing in a later version. Today it shows as offline / upload failure.
-- **Re-pairing:** claiming a new code on a phone that is already paired replaces its stored token. The relay may revoke the old device token for the same `deviceId` or model, or leave that to the account owner.
+The phone protocol is unchanged from the single-user relay (sms-relay 2.1.x), authenticated with the device token:
 
-## 5. Security notes
+| Method & path | Notes |
+|---|---|
+| `POST /phone/presence` | heartbeat + SIMs + caps. Response adds `suspended`, `plan`, `allowedSlots` (e.g. `[1]`). |
+| `GET /phone/ws` | WebSocket, unchanged. |
+| `GET /phone/poll?timeout=20` | long-poll fallback, unchanged. |
+| `POST /phone/confirm` | `{id, decision}`; `429 rate_limited_day` follows the plan's daily limit. |
+| `POST /phone/result` | unchanged. |
+| `POST /sms` (alias `/phone/sms`) | must include `slot` (1-based) or `simSlotIndex`. New errors: `402 quota_exceeded`, `403 number_not_on_plan`. |
+| `GET /phone/me` | `{deviceId, deviceName, suspended, plan, limits, allowedSlots, usage}` |
+| `POST /phone/unpair` | phone-initiated unpair; the token stops working. |
 
-- The only secret that travels through the QR is a one-time code. It is short-lived and becomes useless after the first claim.
+- Command ids look like `dev_xxx.<uuid>`; treat them as opaque.
+- **Revocation:** a revoked device token gets `401 {"error":"device_revoked"}` on every HTTP route and on the WebSocket upgrade; open sockets are closed with code `4001` reason `device_revoked`. An unknown token gets `401 unauthorized`.
+- **Plan states:** `allowedSlots` lists SIM slots on the plan (Free 1 number, Pro 2); codes from other slots get `403`.
+  `suspended: true` / `402 device_suspended` means the account downgraded and this phone is beyond the device limit
+  (presence keeps working). `402 quota_exceeded` means the Free monthly code quota (50, UTC month) is used up.
+- **Re-pairing:** claiming a new code on an already-paired phone replaces its stored token. The relay does not
+  revoke the old device automatically; the owner unpairs it in the console (it frees the device slot).
+
+## 6. Security notes
+
+- The only secret in the QR is a one-time code: short-lived and useless after the first claim.
 - The relay URL must be https. The app refuses http and credentials in the URL.
-- Every pairing requires explicit user confirmation on the phone, showing the relay host. That covers QR codes from untrusted sources and malicious deep links.
-- Do not log full codes or tokens on either side.
+- Every pairing requires explicit confirmation on the phone, showing the relay host.
+- Neither side logs full codes or tokens. The relay stores hashes only.
+- Compliance: only the user's own phone and SIMs; no number pool; codes live 15 minutes; history keeps metadata only.
 
-## 6. Test vectors
+## 7. Test vectors
 
 | Input | Result |
 |---|---|
 | `pocketotp://pair?v=1&relay=https%3A%2F%2Frelay.pocketotp.com&code=7K3M-Q9TD-2XHF` | OK, relay `https://relay.pocketotp.com`, code `7K3MQ9TD2XHF` |
 | `POCKETOTP://pair?relay=https://r.example.com/&code=7k3mq9td2xhf&foo=bar` | OK, relay `https://r.example.com` |
-| `pocketotp://pair?v=2&…` | `UNSUPPORTED_VERSION` |
-| `relay=http://…` or `https://user:pw@…` | `BAD_RELAY` |
-| `code=SHORT` / non-alphabet characters | `BAD_CODE` |
-| `exp` in the past | `EXPIRED` (no network call) |
+| `pocketotp://pair?v=2&…` | app: `UNSUPPORTED_VERSION`; relay claim with `v:2`: `400 bad_request` |
+| `relay=http://…` or `https://user:pw@…` | app: `BAD_RELAY` |
+| `code=SHORT` / non-alphabet characters | app: `BAD_CODE`; relay: `400 bad_request` |
+| `exp` in the past | app: `EXPIRED` (no network call) |
+| claim `7k3m q9td 2xhf`, `7K3M-Q9TD-2XHF`, `7K3MQ9TD2XHF` | same code on the relay |
+| claim with `O`/`I`/`L` in place of `0`/`1`/`1` | same code on the relay |
+| second claim of a used code | `410 code_expired` |
+
+## 8. Known app-side follow-ups (non-blocking for 2.5.0)
+
+1. Map `error: "code_invalid"` (404) and `bad_request` to the specific "code wrong/expired" message
+   (today only `code_expired`/`code_invalid_or_used` are mapped, so 404 shows the generic message).
+2. Map `402 device_limit` to "This account already has the maximum number of phones; unpair one or upgrade to Pro".
+3. Handle `401 device_revoked`: clear the token and offer re-pairing.
+4. Surface `allowedSlots` / `suspended` from presence and `402 quota_exceeded` / `403 number_not_on_plan` from `/sms`.
