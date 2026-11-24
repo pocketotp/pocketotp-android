@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
         prefs = Preferences(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        WindowInsetsPad.apply(this, binding.root)
         setSupportActionBar(binding.toolbar)
 
         applyConfigFromIntent()

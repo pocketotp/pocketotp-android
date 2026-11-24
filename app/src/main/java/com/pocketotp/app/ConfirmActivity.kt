@@ -15,6 +15,7 @@ class ConfirmActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityConfirmBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        WindowInsetsPad.apply(this, binding.root)
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbar.setNavigationOnClickListener { finish() }
