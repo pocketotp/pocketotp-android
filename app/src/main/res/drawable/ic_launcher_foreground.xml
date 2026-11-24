@@ -4,16 +4,24 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M30,36h48a6,6 0,0 1,6 6v28a6,6 0,0 1,-6 6H54l-10,10v-10H30a6,6 0,0 1,-6 -6V42a6,6 0,0 1,6 -6z" />
-    <path
-        android:fillColor="#0F6B5C"
-        android:pathData="M40,52a4,4 0,1 0,0.1 0z" />
-    <path
-        android:fillColor="#0F6B5C"
-        android:pathData="M54,52a4,4 0,1 0,0.1 0z" />
-    <path
-        android:fillColor="#0F6B5C"
-        android:pathData="M68,52a4,4 0,1 0,0.1 0z" />
+    <!-- Mark C (OTP dots), white, fitted to the 66% adaptive-icon safe zone. -->
+    <group
+        android:translateX="18"
+        android:translateY="18"
+        android:scaleX="0.5625"
+        android:scaleY="0.5625">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M31,18 L75,18 A36,36 0 0 1 75,90 L43,90 L43,107 A5,5 0 0 1 38,112 L31,112 A5,5 0 0 1 26,107 L26,23 A5,5 0 0 1 31,18 Z M46.5,35 L75,35 A19,19 0 0 1 75,73 L46.5,73 A3.5,3.5 0 0 1 43,69.5 L43,38.5 A3.5,3.5 0 0 1 46.5,35 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M48.4,54 a4.4,4.4 0 1 1 8.8,0 a4.4,4.4 0 1 1 -8.8,0 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M64.6,54 a4.4,4.4 0 1 1 8.8,0 a4.4,4.4 0 1 1 -8.8,0 Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M80.8,54 a4.4,4.4 0 1 1 8.8,0 a4.4,4.4 0 1 1 -8.8,0 Z" />
+    </group>
 </vector>
