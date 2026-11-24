@@ -80,6 +80,7 @@ class RelayService : Service() {
             .setContentIntent(pending)
             .setOngoing(true)
             .setSilent(true)
+            .setGroup(STATUS_GROUP)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
         if (Build.VERSION.SDK_INT >= 34) {
@@ -206,6 +207,7 @@ class RelayService : Service() {
                     if (!resp.isSuccessful) return
                     val body = resp.body?.string() ?: return
                     val json = JSONObject(body)
+                    ConfirmManager.handleIncoming(this@RelayService, ConfirmRequest.parseList(json.optJSONArray("confirm_requests")))
                     val commands = json.optJSONArray("commands") ?: JSONArray()
                     handleCommands(commands)
                 }
@@ -236,6 +238,13 @@ class RelayService : Service() {
             when (json.optString("type")) {
                 "command" -> json.optJSONObject("command")?.let { SendSms.handleCommand(this, it) }
                 "commands" -> handleCommands(json.optJSONArray("commands") ?: JSONArray())
+                "confirm_request" -> ConfirmRequest.fromJson(json.optJSONObject("request"))?.let {
+                    ConfirmManager.handleIncoming(this, listOf(it))
+                }
+                "confirm_requests" -> ConfirmManager.handleIncoming(
+                    this,
+                    ConfirmRequest.parseList(json.optJSONArray("requests")),
+                )
                 "pong" -> { /* heartbeat ok */ }
             }
         } catch (e: Exception) {
@@ -254,6 +263,7 @@ class RelayService : Service() {
         val o = JSONObject()
             .put("type", type)
             .put("appVersion", BuildConfig.VERSION_NAME)
+            .put("caps", JSONArray().put("confirm"))
             .put("sims", SimInfo.toPublicArray(SimInfo.list(this)))
         if (transport != null) o.put("transport", transport)
         return o
@@ -281,6 +291,7 @@ class RelayService : Service() {
     companion object {
         private const val TAG = "SmsRelay"
         private const val CHANNEL_ID = "sms_relay_status"
+        private const val STATUS_GROUP = "sms_relay_status"
         private const val NOTIFICATION_ID = 42
     }
 }

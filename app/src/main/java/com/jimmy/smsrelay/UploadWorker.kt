@@ -1,13 +1,10 @@
 package com.jimmy.smsrelay
 
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import org.json.JSONObject
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
-import java.nio.charset.StandardCharsets
 
 class UploadWorker(
     context: Context,
@@ -22,40 +19,21 @@ class UploadWorker(
             return Result.failure()
         }
 
-        val url = try {
-            val base = endpoint.trimEnd('/')
-            URL("$base$path")
-        } catch (_: Exception) {
-            record(payload, skipped = true, reason = "bad_endpoint")
-            return Result.failure()
-        }
-
-        return try {
-            val conn = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                connectTimeout = 15_000
-                readTimeout = 15_000
-                doOutput = true
-                setRequestProperty("Authorization", "Bearer $token")
-                setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                setRequestProperty("Accept", "application/json")
+        val resp = RelayHttp.postJson(endpoint, token, path, payload)
+        return when {
+            resp.ok -> {
+                if (path == "/sms") record(payload, skipped = false, reason = "ok")
+                Result.success()
             }
-            OutputStreamWriter(conn.outputStream, StandardCharsets.UTF_8).use { it.write(payload) }
-            val code = conn.responseCode
-            conn.disconnect()
-            when {
-                code in 200..299 -> {
-                    if (path == "/sms") record(payload, skipped = false, reason = "ok")
-                    Result.success()
-                }
-                code in 400..499 && code != 408 && code != 429 -> {
-                    if (path == "/sms") record(payload, skipped = true, reason = "http_$code")
-                    Result.failure()
-                }
-                else -> Result.retry()
+            resp.code in 400..499 && resp.code != 408 && resp.code != 429 -> {
+                if (path == "/sms") record(payload, skipped = true, reason = "http_${resp.code}")
+                Log.w(TAG, "upload $path giving up http=${resp.code}")
+                Result.failure()
             }
-        } catch (_: Exception) {
-            Result.retry()
+            else -> {
+                Log.w(TAG, "upload $path retry http=${resp.code} err=${resp.error}")
+                Result.retry()
+            }
         }
     }
 
@@ -79,6 +57,7 @@ class UploadWorker(
     }
 
     companion object {
+        private const val TAG = "SmsRelay"
         const val KEY_ENDPOINT = "endpoint"
         const val KEY_TOKEN = "token"
         const val KEY_PAYLOAD = "payload"

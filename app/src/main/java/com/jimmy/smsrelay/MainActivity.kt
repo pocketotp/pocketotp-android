@@ -41,6 +41,7 @@ class MainActivity : AppCompatActivity() {
         applyConfigFromIntent()
         bindUiFromPrefs()
         refreshPermissionState()
+        requestNotificationPermissionIfNeeded()
         renderHistory()
         renderSends()
         renderConnection()
@@ -76,6 +77,7 @@ class MainActivity : AppCompatActivity() {
         renderHistory()
         renderSends()
         renderConnection()
+        ConfirmManager.launchPendingIfForeground(this)
     }
 
     override fun onPause() {
@@ -210,6 +212,16 @@ class MainActivity : AppCompatActivity() {
         permissionLauncher.launch(missing)
     }
 
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < 33) return
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        permissionLauncher.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
+    }
+
     private fun toast(msg: String) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
@@ -239,12 +251,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun syncRelayService() {
-        val shouldRun = prefs.enabled && prefs.endpoint.isNotBlank() && prefs.token.isNotBlank()
-        val intent = Intent(this, RelayService::class.java)
-        if (shouldRun) {
-            androidx.core.content.ContextCompat.startForegroundService(this, intent)
+        if (RelayStart.shouldRun(this)) {
+            RelayStart.tryStart(this)
         } else {
-            stopService(intent)
+            stopService(Intent(this, RelayService::class.java))
         }
     }
 

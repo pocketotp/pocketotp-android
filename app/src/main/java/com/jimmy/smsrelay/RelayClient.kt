@@ -9,9 +9,14 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import org.json.JSONObject
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 object RelayClient {
+    private val io = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "sms-relay-result").apply { isDaemon = true }
+    }
+
     data class Payload(
         val code: String?,
         val sender: String?,
@@ -76,7 +81,17 @@ object RelayClient {
         if (subscriptionId != null) payload.put("subscriptionId", subscriptionId)
         if (slot != null) payload.put("slot", slot)
         if (carrier != null) payload.put("carrier", carrier)
-        enqueueJson(context, endpoint, token, payload.toString(), "/phone/result")
+        val body = payload.toString()
+        val app = context.applicationContext
+        // Post immediately with the same OkHttp stack as confirm/WebSocket.
+        // WorkManager is only a fallback. Never block the main thread
+        // (SmsSentReceiver / SmsDeliveredReceiver run there).
+        io.execute {
+            val posted = RelayHttp.postJson(endpoint, token, "/phone/result", body)
+            if (!posted.ok) {
+                enqueueJson(app, endpoint, token, body, "/phone/result")
+            }
+        }
     }
 
     private fun enqueueJson(context: Context, endpoint: String, token: String, payload: String, path: String) {

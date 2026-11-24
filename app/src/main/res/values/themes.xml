@@ -6,6 +6,5 @@
         <item name="colorOnPrimary">@color/on_primary</item>
         <item name="android:statusBarColor">@color/primary_dark</item>
         <item name="android:navigationBarColor">@color/background</item>
-        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

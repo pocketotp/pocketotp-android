@@ -7,6 +7,7 @@ import android.content.Intent
 import android.telephony.SmsManager
 import android.util.Log
 import org.json.JSONObject
+import java.util.concurrent.ConcurrentHashMap
 
 object SendSms {
     const val ACTION_SENT = "com.jimmy.smsrelay.SMS_SENT"
@@ -18,6 +19,10 @@ object SendSms {
     fun handleCommand(context: Context, command: JSONObject) {
         val id = command.optString("id")
         if (id.isBlank()) return
+        if (!handledIds.add(id)) {
+            Log.i(TAG, "ignore duplicate command id=$id")
+            return
+        }
         val prefs = Preferences(context)
         val dryRun = command.optBoolean("dryRun") || command.optBoolean("dry_run")
         val simSpec = command.optJSONObject("sim") ?: JSONObject()
@@ -130,6 +135,7 @@ object SendSms {
     }
 
     private const val TAG = "SmsRelay"
+    private val handledIds = ConcurrentHashMap.newKeySet<String>()
 }
 
 class SmsSentReceiver : android.content.BroadcastReceiver() {

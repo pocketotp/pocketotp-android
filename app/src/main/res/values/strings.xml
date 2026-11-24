@@ -8,8 +8,8 @@
     <string name="blacklist_helper">匹配发件人、品牌、运营商或短信正文的消息不会上传。默认拦截银行和支付类。</string>
     <string name="save">保存</string>
     <string name="test_upload">测试上传</string>
-    <string name="send_sms_stub">发送短信已启用（由助手下发指令）</string>
-    <string name="send_sms_stub_toast">v2 已支持从指定卡槽发短信。请通过助手的 send_sms 工具下发，不会在这里手工输入号码。</string>
+    <string name="send_sms_stub">发送短信需在手机上确认</string>
+    <string name="send_sms_stub_toast">助手提交发送后，请在通知或确认页点允许或拒绝。未确认前不会发出短信。</string>
     <string name="request_permissions">授予短信、电话和通知权限</string>
     <string name="perms_granted">权限已授予：接收/发送短信、读取短信、电话状态、通知。本应用不会读取历史收件箱。</string>
     <string name="perms_missing">缺少权限：%1$s。请点击下方按钮授予，或在系统设置中允许。</string>
@@ -30,4 +30,24 @@
     <string name="need_endpoint_token">请先填写服务地址和访问令牌</string>
     <string name="test_queued">测试验证码 123456 已加入上传队列</string>
     <string name="configured_via_adb">已从调试配置写入地址和令牌</string>
+    <string name="confirm_channel">发送确认</string>
+    <string name="confirm_channel_desc">在发出短信前请你确认收件人、卡槽和正文。</string>
+    <string name="confirm_title">确认发送短信</string>
+    <string name="confirm_title_dry">确认试发送（不会真正发出）</string>
+    <string name="confirm_line">发给 %1$s · %2$s</string>
+    <string name="confirm_big_text">发给 %1$s\n卡：%2$s\n%3$s\n截止：%4$s</string>
+    <string name="confirm_allow">允许</string>
+    <string name="confirm_deny">拒绝</string>
+    <string name="confirm_detail_to">收件人：%1$s</string>
+    <string name="confirm_detail_to_full">收件人：%1$s（%2$s）</string>
+    <string name="confirm_detail_sim">卡：%1$s</string>
+    <string name="confirm_detail_expires">截止：%1$s</string>
+    <string name="confirm_detail_dry">这是试发送，确认后也不会真正发出短信。</string>
+    <string name="confirm_allowed">已允许，等待发出</string>
+    <string name="confirm_denied">已拒绝发送</string>
+    <string name="confirm_expired">确认已超时，短信未发出</string>
+    <string name="confirm_already_decided">这条请求已经处理过了</string>
+    <string name="confirm_rate_limited">发送次数已达上限，请稍后再允许</string>
+    <string name="confirm_failed">确认请求失败，请重试</string>
+    <string name="confirm_missing">找不到这条确认请求</string>
 </resources>

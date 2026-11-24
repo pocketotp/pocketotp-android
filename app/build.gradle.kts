@@ -11,8 +11,8 @@ android {
         applicationId = "com.jimmy.smsrelay"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 5
+        versionName = "2.1.2"
     }
 
     buildTypes {
@@ -50,4 +50,7 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.3.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20250517")
 }
