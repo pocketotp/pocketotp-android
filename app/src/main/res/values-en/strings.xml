@@ -41,7 +41,7 @@
     <string name="confirm_to_full">Full number: %1$s</string>
     <string name="confirm_label_sim">Send from</string>
     <string name="confirm_sim_slot">SIM %1$d</string>
-    <string name="confirm_label_text">Message (%1$d characters · %2$d parts)</string>
+    <string name="confirm_label_text">Message (%1$d characters · %2$d part(s))</string>
     <string name="confirm_footer">If this times out it is denied automatically, and the message is deleted on the relay.</string>
     <string name="confirm_deny_primary">Deny, don\'t send</string>
     <string name="confirm_hold_allow">Hold 1 second to allow</string>
@@ -144,7 +144,7 @@
     <string name="samsung_guide_open">Open app info</string>
     <string name="onb_connect_title">Connect to your assistant</string>
     <string name="onb_connected">Connected to the relay</string>
-    <string name="onb_connect_body">In the PocketOTP console, tap “Add phone” and scan the QR code. The code is single-use and only valid for a few minutes.</string>
+    <string name="onb_connect_body">In the PocketOTP console, open Pair a phone, show the QR code, and scan it. The code is single-use and only valid for a few minutes.</string>
     <string name="onb_done_title">You\'re set up</string>
     <string name="onb_done_body">Send a test code to confirm your assistant can read it.</string>
     <string name="onb_done_body_unconfigured">The relay is not connected yet. You can scan a QR code or enter details later in Settings.</string>
