@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,6 +51,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pocketotp.app.Pairing
@@ -175,17 +178,32 @@ fun ChecklistRow(check: SetupChecks.Check, onFix: () -> Unit) {
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(stringResource(title), fontWeight = FontWeight.Medium)
                 if (!check.required) {
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.onb_recommended), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        stringResource(R.string.onb_recommended),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
                 }
             }
             Text(stringResource(detail), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (!ok) {
-            TextButton(onClick = onFix) { Text(stringResource(if (manual) R.string.onb_how else R.string.action_enable)) }
+            TextButton(onClick = onFix, modifier = Modifier.wrapContentWidth()) {
+                Text(
+                    stringResource(if (manual) R.string.onb_how else R.string.action_enable),
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
         }
     }
 }
@@ -334,3 +352,30 @@ fun PairingDialog(state: PairingUiState, onConfirm: () -> Unit, onDismiss: () ->
         dismissButton = { TextButton(onClick = onDismiss, enabled = !state.busy) { Text(stringResource(R.string.pair_cancel)) } },
     )
 }
+
+
+@Preview(name = "EN 360", locale = "en", widthDp = 360, showBackground = true)
+@Preview(name = "ZH 360", locale = "zh", widthDp = 360, showBackground = true)
+@Preview(name = "EN cover 320 1.3x", locale = "en", widthDp = 320, fontScale = 1.3f, showBackground = true)
+@Preview(name = "ZH cover 320 1.3x", locale = "zh", widthDp = 320, fontScale = 1.3f, showBackground = true)
+@Composable
+private fun ChecklistRowPreviews() {
+    PocketOtpTheme {
+        Column(Modifier.padding(12.dp)) {
+            previewChecklist().forEachIndexed { i, check ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                ChecklistRow(check, onFix = {})
+            }
+        }
+    }
+}
+
+private fun previewChecklist(): List<SetupChecks.Check> = listOf(
+    SetupChecks.Check(SetupChecks.Id.SMS, SetupChecks.Status.OK, required = true),
+    SetupChecks.Check(SetupChecks.Id.PHONE, SetupChecks.Status.OK, required = true),
+    SetupChecks.Check(SetupChecks.Id.NOTIFICATIONS, SetupChecks.Status.OK, required = true),
+    SetupChecks.Check(SetupChecks.Id.FULL_SCREEN, SetupChecks.Status.MISSING, required = false),
+    SetupChecks.Check(SetupChecks.Id.BATTERY, SetupChecks.Status.MISSING, required = false),
+    SetupChecks.Check(SetupChecks.Id.POPUP, SetupChecks.Status.MISSING, required = false),
+    SetupChecks.Check(SetupChecks.Id.SAMSUNG_SLEEP, SetupChecks.Status.MANUAL, required = false),
+)
