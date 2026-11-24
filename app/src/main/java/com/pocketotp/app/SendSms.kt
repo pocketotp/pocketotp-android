@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.app.Activity
 import android.app.PendingIntent
@@ -10,8 +10,8 @@ import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
 object SendSms {
-    const val ACTION_SENT = "com.jimmy.smsrelay.SMS_SENT"
-    const val ACTION_DELIVERED = "com.jimmy.smsrelay.SMS_DELIVERED"
+    const val ACTION_SENT = "com.pocketotp.app.SMS_SENT"
+    const val ACTION_DELIVERED = "com.pocketotp.app.SMS_DELIVERED"
     const val EXTRA_COMMAND_ID = "command_id"
     const val EXTRA_PARTS = "parts"
     const val EXTRA_PART_INDEX = "part_index"
@@ -134,7 +134,7 @@ object SendSms {
         }
     }
 
-    private const val TAG = "SmsRelay"
+    private const val TAG = "PocketOTP"
     private val handledIds = ConcurrentHashMap.newKeySet<String>()
 }
 

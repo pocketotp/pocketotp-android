@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -112,5 +112,6 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        private const val TAG = "SmsRelay"    }
+        private const val TAG = "PocketOTP"
+    }
 }

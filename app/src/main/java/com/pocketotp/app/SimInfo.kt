@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.content.Context
 import android.os.Build

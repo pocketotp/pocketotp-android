@@ -1,11 +1,11 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
 import java.util.concurrent.atomic.AtomicInteger
 
-class SmsRelayApp : Application() {
+class PocketOtpApp : Application() {
     override fun onCreate() {
         super.onCreate()
         RelayStart.tryStart(this)

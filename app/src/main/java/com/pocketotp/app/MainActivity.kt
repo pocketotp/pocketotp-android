@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.Manifest
 import android.content.Intent
@@ -10,7 +10,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.jimmy.smsrelay.databinding.ActivityMainBinding
+import com.pocketotp.app.databinding.ActivityMainBinding
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
         prefs = Preferences(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        WindowInsetsPad.apply(this, binding.root)
         setSupportActionBar(binding.toolbar)
 
         applyConfigFromIntent()

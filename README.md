@@ -4,7 +4,7 @@ Pre-release Android app that forwards SMS verification codes from **your own pho
 
 This repository is the Android client only. The relay server is a **hosted, closed-source** service. You paste the service URL and an access token into the app; neither is stored in this repo.
 
-**Status:** pre-release. The installed application id is still `com.jimmy.smsrelay` and the in-app name is still "SMS Relay". Those will be rebranded before a public beta.
+**Status:** pre-release. The application id is `com.pocketotp.app` and the in-app name is **PocketOTP**. This id is different from the earlier `com.jimmy.smsrelay` builds, so installing 2.2.0 does not replace an existing SMS Relay install; grant permissions and enter the relay URL and token again, then disable or uninstall the old app so only one client receives SMS.
 
 Requires **Android 8.0** (API 26) or later. Dual-SIM phones are supported.
 
@@ -26,7 +26,7 @@ Requires **Android 8.0** (API 26) or later. Dual-SIM phones are supported.
 | `SEND_SMS` | Send a text when the relay requests it. |
 | `READ_PHONE_STATE`, `READ_PHONE_NUMBERS` | Identify which SIM received a message or should send one. |
 | `INTERNET`, `ACCESS_NETWORK_STATE` | Talk to the hosted relay. |
-| `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` | Persistent notification and connection. |
+| `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`, `USE_FULL_SCREEN_INTENT` | Persistent notification, connection, and send-confirmation alerts. |
 | `RECEIVE_BOOT_COMPLETED` | Restart after reboot if forwarding is enabled. |
 | `WAKE_LOCK` | Keep the connection from sleeping. |
 

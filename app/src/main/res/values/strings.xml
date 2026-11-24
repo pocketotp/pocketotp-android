@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SMS Relay</string>
+    <string name="app_name">PocketOTP</string>
     <string name="enable_forwarding">启用转发与发送</string>
     <string name="endpoint_hint">服务地址（HTTPS）</string>
     <string name="token_hint">访问令牌</string>
@@ -21,9 +21,9 @@
     <string name="connection_websocket">连接：在线（WebSocket）</string>
     <string name="connection_polling">连接：在线（长轮询备用）</string>
     <string name="connection_reconnecting">连接：重连中</string>
-    <string name="notification_channel">SMS Relay 状态</string>
-    <string name="notification_title">SMS Relay</string>
-    <string name="notification_text">SMS Relay 运行中</string>
+    <string name="notification_channel">PocketOTP 状态</string>
+    <string name="notification_title">PocketOTP</string>
+    <string name="notification_text">PocketOTP 运行中</string>
     <string name="saved">已保存</string>
     <string name="enabled_on">已启用转发与发送</string>
     <string name="enabled_off">已关闭转发与发送</string>

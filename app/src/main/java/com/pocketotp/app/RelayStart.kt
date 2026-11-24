@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.content.Context
 import android.content.Intent
@@ -6,7 +6,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 
 object RelayStart {
-    private const val TAG = "SmsRelay"
+    private const val TAG = "PocketOTP"
 
     fun shouldRun(context: Context): Boolean {
         val prefs = Preferences(context)

@@ -1,10 +1,10 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.jimmy.smsrelay.databinding.ActivityConfirmBinding
+import com.pocketotp.app.databinding.ActivityConfirmBinding
 
 class ConfirmActivity : AppCompatActivity() {
     private lateinit var binding: ActivityConfirmBinding
@@ -15,6 +15,7 @@ class ConfirmActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityConfirmBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        WindowInsetsPad.apply(this, binding.root)
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbar.setNavigationOnClickListener { finish() }
@@ -98,6 +99,6 @@ class ConfirmActivity : AppCompatActivity() {
                     finish()
                 }
             }
-        }, "sms-relay-confirm-ui").start()
+        }, "pocketotp-confirm-ui").start()
     }
 }

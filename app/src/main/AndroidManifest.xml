@@ -18,13 +18,13 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <application
-        android:name=".SmsRelayApp"
+        android:name=".PocketOtpApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SMSRelay"
+        android:theme="@style/Theme.PocketOTP"
         android:usesCleartextTraffic="false">
 
         <activity
@@ -38,7 +38,7 @@
             </intent-filter>
             <!-- Debug configuration from adb via intent extras: endpoint, token, enabled -->
             <intent-filter>
-                <action android:name="com.jimmy.smsrelay.CONFIGURE" />
+                <action android:name="com.pocketotp.app.CONFIGURE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -50,7 +50,7 @@
             android:excludeFromRecents="true"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
-            android:theme="@style/Theme.SMSRelay" />
+            android:theme="@style/Theme.PocketOTP" />
 
         <service
             android:name=".RelayService"
@@ -58,7 +58,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Persistent connection to a personal SMS relay so the phone can send and receive verification-code commands." />
+                android:value="Persistent connection to a personal PocketOTP relay so the phone can send and receive verification-code commands." />
         </service>
 
         <receiver
@@ -93,8 +93,8 @@
             android:name=".ConfirmActionReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.jimmy.smsrelay.CONFIRM_ALLOW" />
-                <action android:name="com.jimmy.smsrelay.CONFIRM_DENY" />
+                <action android:name="com.pocketotp.app.CONFIRM_ALLOW" />
+                <action android:name="com.pocketotp.app.CONFIRM_DENY" />
             </intent-filter>
         </receiver>
     </application>

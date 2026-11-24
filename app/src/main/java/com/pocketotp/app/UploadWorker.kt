@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.content.Context
 import android.util.Log
@@ -57,7 +57,7 @@ class UploadWorker(
     }
 
     companion object {
-        private const val TAG = "SmsRelay"
+        private const val TAG = "PocketOTP"
         const val KEY_ENDPOINT = "endpoint"
         const val KEY_TOKEN = "token"
         const val KEY_PAYLOAD = "payload"

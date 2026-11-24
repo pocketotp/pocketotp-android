@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.content.Context
 import android.util.Log
@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 
 object RelayClient {
     private val io = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "sms-relay-result").apply { isDaemon = true }
+        Thread(r, "pocketotp-result").apply { isDaemon = true }
     }
 
     data class Payload(
@@ -47,7 +47,7 @@ object RelayClient {
 
     fun enqueueUpload(context: Context, endpoint: String, token: String, payload: Payload) {
         if (endpoint.isBlank() || token.isBlank()) {
-            Log.w("SmsRelay", "endpoint or token missing; drop upload")
+            Log.w("PocketOTP", "endpoint or token missing; drop upload")
             Preferences(context).addHistory(
                 HistoryItem(
                     code = payload.code ?: "—",
