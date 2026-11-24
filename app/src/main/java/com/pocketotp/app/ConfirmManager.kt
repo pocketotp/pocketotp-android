@@ -1,11 +1,13 @@
 package com.pocketotp.app
 
+import android.app.ActivityOptions
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -199,33 +201,58 @@ object ConfirmManager {
 
 
     private fun maybeLaunchConfirmActivity(context: Context, req: ConfirmRequest) {
-        if (!PocketOtpApp.isInForeground()) return
         if (decided.contains(req.id) || req.isExpired()) return
         if (!launchedActivities.add(req.id)) return
         handler.post {
-            if (!PocketOtpApp.isInForeground()) return@post
             if (decided.contains(req.id) || req.isExpired()) return@post
-            val intent = putExtras(Intent(context, ConfirmActivity::class.java), req)
-                .addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP,
-                )
+            val intent = confirmIntent(context, req)
             try {
-                context.startActivity(intent)
+                // Samsung One UI often suppresses heads-up when a silent FGS
+                // notification is showing, even for a HIGH confirm channel.
+                // After notify(), send the activity PendingIntent with BAL
+                // options so ConfirmActivity comes up from the background too.
+                val pi = PendingIntent.getActivity(
+                    context,
+                    requestCode(req.id, "open"),
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+                if (Build.VERSION.SDK_INT >= 34) {
+                    val opts = ActivityOptions.makeBasic()
+                    opts.setPendingIntentBackgroundActivityStartMode(
+                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED,
+                    )
+                    pi.send(context, 0, null, null, null, null, opts.toBundle())
+                } else {
+                    pi.send()
+                }
+                Log.i(TAG, "launched ConfirmActivity id=${req.id}")
             } catch (e: Exception) {
-                Log.w(TAG, "cannot start ConfirmActivity: ${e.javaClass.simpleName}")
+                Log.w(TAG, "pending-intent launch failed: ${e.javaClass.simpleName}; trying startActivity")
+                try {
+                    context.startActivity(intent)
+                    Log.i(TAG, "startActivity ConfirmActivity id=${req.id}")
+                } catch (e2: Exception) {
+                    Log.w(TAG, "cannot start ConfirmActivity: ${e2.javaClass.simpleName}")
+                }
             }
         }
     }
 
-    private fun postNotification(context: Context, req: ConfirmRequest) {
+    private fun confirmIntent(context: Context, req: ConfirmRequest): Intent {
+        return putExtras(Intent(context, ConfirmActivity::class.java), req)
+            .addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
+            )
+    }
 
+    private fun postNotification(context: Context, req: ConfirmRequest) {
         val contentIntent = PendingIntent.getActivity(
             context,
             requestCode(req.id, "open"),
-            putExtras(Intent(context, ConfirmActivity::class.java), req)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            confirmIntent(context, req),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val allowIntent = PendingIntent.getBroadcast(
@@ -261,11 +288,13 @@ object ConfirmManager {
             .setDefaults(NotificationCompat.DEFAULT_VIBRATE or NotificationCompat.DEFAULT_SOUND)
             .setContentIntent(contentIntent)
             .setFullScreenIntent(contentIntent, true)
+            .setTimeoutAfter(((req.expiresAtMs ?: (System.currentTimeMillis() + 5 * 60_000L)) - System.currentTimeMillis()).coerceAtLeast(1_000L))
             .addAction(0, context.getString(R.string.confirm_allow), allowIntent)
             .addAction(0, context.getString(R.string.confirm_deny), denyIntent)
             .build()
         try {
             NotificationManagerCompat.from(context).notify(notificationId(req.id), notification)
+            Log.i(TAG, "posted confirm notification id=${req.id}")
         } catch (e: SecurityException) {
             Log.w(TAG, "cannot post confirm notification: missing POST_NOTIFICATIONS")
         }
