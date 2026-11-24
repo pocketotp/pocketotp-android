@@ -1,10 +1,12 @@
 # PocketOTP for Android
 
-Pre-release Android app that forwards SMS verification codes from **your own phone** to a hosted PocketOTP relay, (hosted service: [pocketotp.com](https://pocketotp.com), relay `https://relay.pocketotp.com`) so an AI agent can read them and, when asked, send a text from a chosen SIM.
+Android app that forwards SMS verification codes from **your own phone** to a hosted PocketOTP relay so an AI agent can read them and, when asked, send a text from a chosen SIM.
 
-This repository is the Android client only. The relay server is a **hosted, closed-source** service. You paste the service URL and an access token into the app; neither is stored in this repo.
+Hosted service: [pocketotp.com](https://pocketotp.com). Relay: [`https://relay.pocketotp.com`](https://relay.pocketotp.com).
 
-**Status:** pre-release. The application id is `com.pocketotp.app` and the in-app name is **PocketOTP**. This id is different from the earlier `com.jimmy.smsrelay` builds, so installing 2.2.0 does not replace an existing SMS Relay install; grant permissions and enter the relay URL and token again, then disable or uninstall the old app so only one client receives SMS.
+The current official release is **2.5.1**: [download the signed APK](https://github.com/pocketotp/pocketotp-android/releases/tag/v2.5.1). This repository is the Android client (Apache-2.0). The relay is a **hosted, closed-source** service. You can pair by scanning a QR code from the console, or paste the service URL and an access token into the app; neither is stored in this repo.
+
+The application id is `com.pocketotp.app` and the in-app name is **PocketOTP**. This id is different from the earlier `com.jimmy.smsrelay` builds, so installing this app does not replace an existing SMS Relay install. Grant permissions and pair (or enter the relay URL and token) again, then disable or uninstall the old app so only one client receives SMS.
 
 Requires **Android 8.0** (API 26) or later. Dual-SIM phones are supported.
 
