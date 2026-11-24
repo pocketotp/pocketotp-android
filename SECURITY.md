@@ -2,12 +2,17 @@
 
 ## Reporting a vulnerability
 
-Please don't open a public issue. Email **security@pocketotp.com** with steps to reproduce, the affected version, and your device or Android version. We aim to reply within 3 business days and to ship a fix or mitigation within 30 days, and we'll credit you if you want.
+Please don't open a public issue. Email **hello@pocketotp.com** with "Security" in the subject. Include steps to reproduce, the affected version, and your device or Android version.
+
+- We acknowledge reports within **72 hours**.
+- We send an initial assessment within **7 days**.
+- We aim to fix critical issues within **30 days**, and to coordinate disclosure with you.
+- We'll credit you in the release notes if you want.
 
 ## Scope
 
 - This Android app: SMS handling, pairing, the confirm-before-send flow, local storage and the relay protocol client.
-- The hosted relay at `*.pocketotp.com` is in scope for reports. Testing must use your own account, your own phone and your own numbers only. No load testing, no access to other users' data, no social engineering.
+- The hosted service (`pocketotp.com`, `relay.pocketotp.com`) is in scope for reports. Testing must use your own account, your own phone and your own numbers only. No load testing, no access to other users' data, no social engineering.
 
 ## Design commitments
 

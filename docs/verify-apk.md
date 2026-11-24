@@ -1,6 +1,6 @@
 # Verifying a PocketOTP APK
 
-Official PocketOTP APKs come from GitHub Releases or pocketotp.com. They are signed with one release key.
+Official PocketOTP APKs come from [GitHub Releases](https://github.com/pocketotp/pocketotp-android/releases) or [pocketotp.com](https://pocketotp.com). They are signed with one release key.
 
 **Release certificate**
 

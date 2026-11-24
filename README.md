@@ -1,6 +1,6 @@
 # PocketOTP for Android
 
-Pre-release Android app that forwards SMS verification codes from **your own phone** to a hosted PocketOTP relay, so an AI agent can read them and, when asked, send a text from a chosen SIM.
+Pre-release Android app that forwards SMS verification codes from **your own phone** to a hosted PocketOTP relay, (hosted service: [pocketotp.com](https://pocketotp.com), relay `https://relay.pocketotp.com`) so an AI agent can read them and, when asked, send a text from a chosen SIM.
 
 This repository is the Android client only. The relay server is a **hosted, closed-source** service. You paste the service URL and an access token into the app; neither is stored in this repo.
 
