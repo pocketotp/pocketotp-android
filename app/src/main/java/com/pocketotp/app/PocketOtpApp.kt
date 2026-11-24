@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class PocketOtpApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        RelayHttp.appContext = applicationContext
         RelayStart.tryStart(this)
         registerActivityLifecycleCallbacks(
             object : ActivityLifecycleCallbacks {

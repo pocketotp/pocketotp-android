@@ -71,7 +71,7 @@ fun OnboardingScreen(
     initialStep: Int,
     onFinish: () -> Unit,
 ) {
-    var step by rememberSaveable { mutableIntStateOf(initialStep.coerceIn(0, STEPS - 1)) }
+    var step by rememberSaveable(initialStep) { mutableIntStateOf(initialStep.coerceIn(0, STEPS - 1)) }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).imePadding()) {
             Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {

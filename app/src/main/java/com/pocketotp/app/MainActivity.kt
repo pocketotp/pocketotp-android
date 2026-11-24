@@ -29,6 +29,7 @@ import com.journeyapps.barcodescanner.ScanOptions
 import com.pocketotp.app.ui.PairingUiState
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.pocketotp.app.ui.AccountUi
 import com.pocketotp.app.ui.MainActions
 import com.pocketotp.app.ui.MainApp
 import com.pocketotp.app.ui.MainUiState
@@ -45,6 +46,8 @@ class MainActivity : ComponentActivity() {
     private var onboardingStep by mutableStateOf(0)
     private var pairing by mutableStateOf(PairingUiState())
     private var samsungGuide by mutableStateOf(false)
+    /** Debug builds only: preview account banners without touching stored state. */
+    private var debugAccount: AccountUi? = null
 
     private val scanLauncher = registerForActivityResult(ScanContract()) { result ->
         result.contents?.let { pairFromText(it) }
@@ -64,6 +67,7 @@ class MainActivity : ComponentActivity() {
         // Keep codes out of the recent-apps thumbnail.
         if (Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(false)
         prefs = Preferences(this)
+        debugAccount = debugAccountFrom(intent)
         applyConfigFromIntent()
         requestNotificationPermissionIfNeeded()
         syncRelayService()
@@ -73,6 +77,7 @@ class MainActivity : ComponentActivity() {
         showOnboarding = intent?.getBooleanExtra(EXTRA_ONBOARDING, false) == true ||
             (!prefs.onboardingDone && state0 != null && (!state0.configured || !SetupChecks.requiredOk(state0.checks)))
         onboardingStep = intent?.getIntExtra(EXTRA_ONBOARDING_STEP, 0) ?: 0
+        if (intent?.getBooleanExtra(EXTRA_REPAIR, false) == true) openRepair()
         handlePairingIntent(intent)
         val actions = MainActions(
             setEnabled = { checked ->
@@ -98,6 +103,7 @@ class MainActivity : ComponentActivity() {
             scanQr = { launchScanner() },
             pairFromText = { pairFromText(it) },
             openOnboarding = { onboardingStep = 1; showOnboarding = true },
+            openRepair = { openRepair() },
         )
         setContent {
             PocketOtpTheme {
@@ -139,6 +145,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handlePairingIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_REPAIR, false)) openRepair()
         if (intent.getBooleanExtra(EXTRA_ONBOARDING, false)) {
             onboardingStep = intent.getIntExtra(EXTRA_ONBOARDING_STEP, 0)
             showOnboarding = true
@@ -186,6 +193,14 @@ class MainActivity : ComponentActivity() {
             fullScreenAllowed = if (Build.VERSION.SDK_INT >= 34) nm?.canUseFullScreenIntent() == true else true,
             pendingConfirms = ConfirmManager.pendingRequests().size,
             versionName = BuildConfig.VERSION_NAME,
+            account = debugAccount ?: AccountUi(
+                revoked = prefs.revoked && prefs.token.isBlank(),
+                suspended = prefs.planSuspended,
+                plan = prefs.plan.ifBlank { null },
+                allowedSlots = RelayState.decodeSlots(prefs.allowedSlots),
+                issue = RelayState.Issue.fromKey(prefs.relayIssue),
+                issueSlot = prefs.relayIssueSlot,
+            ),
             nowMs = System.currentTimeMillis(),
             checks = SetupChecks.build(
                 SetupChecks.Inputs(
@@ -214,6 +229,7 @@ class MainActivity : ComponentActivity() {
         }
         intent.getStringExtra(EXTRA_TOKEN)?.let {
             if (it.isNotBlank()) {
+                RelayEvents.onNewConnection(this)
                 prefs.token = it
                 changed = true
             }
@@ -234,6 +250,7 @@ class MainActivity : ComponentActivity() {
             toast(getString(R.string.endpoint_https_required))
             return
         }
+        if (trimmed != prefs.endpoint || newToken.isNotBlank()) RelayEvents.onNewConnection(this)
         prefs.endpoint = trimmed
         // The saved token is never shown; a blank field keeps it.
         if (newToken.isNotBlank()) prefs.token = newToken
@@ -331,6 +348,23 @@ class MainActivity : ComponentActivity() {
 
     // ---------- QR pairing ----------
 
+    private fun debugAccountFrom(intent: Intent?): AccountUi? {
+        if (!BuildConfig.DEBUG) return null
+        return when (intent?.getStringExtra(EXTRA_DEBUG_ACCOUNT)) {
+            "revoked" -> AccountUi(revoked = true)
+            "suspended" -> AccountUi(suspended = true, plan = "free", allowedSlots = emptyList())
+            "quota" -> AccountUi(plan = "free", allowedSlots = listOf(1), issue = RelayState.Issue.QUOTA_EXCEEDED)
+            "slot" -> AccountUi(plan = "free", allowedSlots = listOf(1), issue = RelayState.Issue.NUMBER_NOT_ON_PLAN, issueSlot = 2)
+            else -> null
+        }
+    }
+
+    /** Jump straight to the "connect" step (after the relay revoked this phone). */
+    private fun openRepair() {
+        onboardingStep = 2
+        showOnboarding = true
+    }
+
     private fun launchScanner() {
         scanLauncher.launch(
             ScanOptions()
@@ -370,6 +404,7 @@ class MainActivity : ComponentActivity() {
             val result = withContext(Dispatchers.IO) { Pairing.claim(offer) }
             when (result) {
                 is Pairing.ClaimResult.Ok -> {
+                    RelayEvents.onNewConnection(this@MainActivity)
                     prefs.endpoint = result.claimed.relay
                     prefs.token = result.claimed.token
                     prefs.deviceId = result.claimed.deviceId.orEmpty()
@@ -381,11 +416,12 @@ class MainActivity : ComponentActivity() {
                 }
                 is Pairing.ClaimResult.Failed -> pairing = pairing.copy(
                     busy = false,
-                    error = getString(when (result.error) {
-                        "code_expired", "code_invalid_or_used" -> R.string.pair_claim_err_code
-                        "rate_limited" -> R.string.pair_claim_err_rate
-                        "network" -> R.string.pair_claim_err_network
-                        else -> R.string.pair_claim_err_other
+                    error = getString(when (RelayState.claimErrorOf(result.error)) {
+                        RelayState.ClaimError.CODE -> if (result.error == "code_expired") R.string.pair_claim_err_expired else R.string.pair_claim_err_code
+                        RelayState.ClaimError.DEVICE_LIMIT -> R.string.pair_claim_err_device_limit
+                        RelayState.ClaimError.RATE -> R.string.pair_claim_err_rate
+                        RelayState.ClaimError.NETWORK -> R.string.pair_claim_err_network
+                        RelayState.ClaimError.OTHER -> R.string.pair_claim_err_other
                     }) + " (" + result.error + ")",
                 )
             }
@@ -425,5 +461,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_TAB = "tab"
         const val EXTRA_ONBOARDING = "onboarding"
         const val EXTRA_ONBOARDING_STEP = "onboarding_step"
+        const val EXTRA_REPAIR = "repair"
+        const val EXTRA_DEBUG_ACCOUNT = "debug_account"
     }
 }

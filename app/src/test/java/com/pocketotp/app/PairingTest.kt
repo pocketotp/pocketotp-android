@@ -67,7 +67,10 @@ class PairingTest {
         assertEquals("https://relay.pocketotp.com", (moved as Pairing.ClaimResult.Ok).claimed.relay)
 
         assertEquals("code_expired", (Pairing.parseClaimResponse(offer, 410, """{"error":"code_expired"}""") as Pairing.ClaimResult.Failed).error)
-        assertEquals("code_invalid_or_used", (Pairing.parseClaimResponse(offer, 404, "") as Pairing.ClaimResult.Failed).error)
+        assertEquals("code_invalid", (Pairing.parseClaimResponse(offer, 404, "") as Pairing.ClaimResult.Failed).error)
+        assertEquals("device_limit", (Pairing.parseClaimResponse(offer, 402, "") as Pairing.ClaimResult.Failed).error)
+        assertEquals("device_limit", (Pairing.parseClaimResponse(offer, 402, """{"ok":false,"error":"device_limit"}""") as Pairing.ClaimResult.Failed).error)
+        assertEquals("bad_request", (Pairing.parseClaimResponse(offer, 400, "") as Pairing.ClaimResult.Failed).error)
         assertEquals("bad_response", (Pairing.parseClaimResponse(offer, 200, "{}") as Pairing.ClaimResult.Failed).error)
     }
 

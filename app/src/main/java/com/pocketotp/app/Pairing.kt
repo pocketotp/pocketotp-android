@@ -123,7 +123,10 @@ object Pairing {
         if (httpCode !in 200..299) {
             val err = json?.optString("error")?.ifBlank { null } ?: when (httpCode) {
                 0 -> "network"
-                404, 410 -> "code_invalid_or_used"
+                400 -> "bad_request"
+                402 -> "device_limit"
+                404 -> "code_invalid"
+                410 -> "code_expired"
                 429 -> "rate_limited"
                 else -> "http_$httpCode"
             }
