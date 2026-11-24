@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -152,7 +152,7 @@ class Preferences(context: Context) {
     }
 
     companion object {
-        const val PREFS_NAME = "sms_relay_prefs"
+        const val PREFS_NAME = "pocketotp_prefs"
         const val KEY_ENDPOINT = "endpoint"
         const val KEY_TOKEN = "token"
         const val KEY_ENABLED = "enabled"

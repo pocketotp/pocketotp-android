@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -131,7 +131,7 @@ class RelayService : Service() {
                 backoffMs = (backoffMs * 2).coerceAtMost(30_000L)
             }
             running.set(false)
-        }, "sms-relay-socket").apply { isDaemon = true; start() }
+        }, "pocketotp-socket").apply { isDaemon = true; start() }
     }
 
     private fun runWebSocket(prefs: Preferences): Boolean {
@@ -289,9 +289,9 @@ class RelayService : Service() {
     }
 
     companion object {
-        private const val TAG = "SmsRelay"
-        private const val CHANNEL_ID = "sms_relay_status"
-        private const val STATUS_GROUP = "sms_relay_status"
+        private const val TAG = "PocketOTP"
+        private const val CHANNEL_ID = "pocketotp_status"
+        private const val STATUS_GROUP = "pocketotp_status"
         private const val NOTIFICATION_ID = 42
     }
 }

@@ -4,15 +4,15 @@ plugins {
 }
 
 android {
-    namespace = "com.jimmy.smsrelay"
+    namespace = "com.pocketotp.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.jimmy.smsrelay"
+        applicationId = "com.pocketotp.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "2.1.2"
+        versionCode = 6
+        versionName = "2.2.0"
     }
 
     buildTypes {

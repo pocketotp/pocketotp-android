@@ -1,10 +1,10 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.jimmy.smsrelay.databinding.ActivityConfirmBinding
+import com.pocketotp.app.databinding.ActivityConfirmBinding
 
 class ConfirmActivity : AppCompatActivity() {
     private lateinit var binding: ActivityConfirmBinding
@@ -98,6 +98,6 @@ class ConfirmActivity : AppCompatActivity() {
                     finish()
                 }
             }
-        }, "sms-relay-confirm-ui").start()
+        }, "pocketotp-confirm-ui").start()
     }
 }

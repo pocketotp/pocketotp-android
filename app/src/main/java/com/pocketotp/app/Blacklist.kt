@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 object Blacklist {
     fun match(keywords: List<String>, vararg fields: String?): String? {

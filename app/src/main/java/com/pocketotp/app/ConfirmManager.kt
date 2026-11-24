@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -22,8 +22,8 @@ import java.util.concurrent.ConcurrentHashMap
  * until the user decides or [ConfirmRequest.expiresAt] is reached.
  */
 object ConfirmManager {
-    const val ACTION_ALLOW = "com.jimmy.smsrelay.CONFIRM_ALLOW"
-    const val ACTION_DENY = "com.jimmy.smsrelay.CONFIRM_DENY"
+    const val ACTION_ALLOW = "com.pocketotp.app.CONFIRM_ALLOW"
+    const val ACTION_DENY = "com.pocketotp.app.CONFIRM_DENY"
     const val EXTRA_ID = "confirm_id"
     const val EXTRA_TO = "confirm_to"
     const val EXTRA_TO_MASKED = "confirm_to_masked"
@@ -32,9 +32,9 @@ object ConfirmManager {
     const val EXTRA_DRY_RUN = "confirm_dry_run"
     const val EXTRA_EXPIRES_AT = "confirm_expires_at"
 
-    private const val TAG = "SmsRelay"
-    private const val CHANNEL_ID = "sms_relay_confirm_v2"
-    private const val CONFIRM_GROUP = "sms_relay_confirms"
+    private const val TAG = "PocketOTP"
+    private const val CHANNEL_ID = "pocketotp_confirm"
+    private const val CONFIRM_GROUP = "pocketotp_confirms"
     private const val NOTIFICATION_BASE = 1000
 
     private val shown = ConcurrentHashMap<String, ConfirmRequest>()
@@ -199,11 +199,11 @@ object ConfirmManager {
 
 
     private fun maybeLaunchConfirmActivity(context: Context, req: ConfirmRequest) {
-        if (!SmsRelayApp.isInForeground()) return
+        if (!PocketOtpApp.isInForeground()) return
         if (decided.contains(req.id) || req.isExpired()) return
         if (!launchedActivities.add(req.id)) return
         handler.post {
-            if (!SmsRelayApp.isInForeground()) return@post
+            if (!PocketOtpApp.isInForeground()) return@post
             if (decided.contains(req.id) || req.isExpired()) return@post
             val intent = putExtras(Intent(context, ConfirmActivity::class.java), req)
                 .addFlags(

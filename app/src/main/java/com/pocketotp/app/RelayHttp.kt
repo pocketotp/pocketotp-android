@@ -1,4 +1,4 @@
-package com.jimmy.smsrelay
+package com.pocketotp.app
 
 import android.util.Log
 import okhttp3.MediaType.Companion.toMediaType
@@ -16,7 +16,7 @@ object RelayHttp {
         val error: String? = null,
     )
 
-    private const val TAG = "SmsRelay"
+    private const val TAG = "PocketOTP"
     private val media = "application/json; charset=utf-8".toMediaType()
     val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
