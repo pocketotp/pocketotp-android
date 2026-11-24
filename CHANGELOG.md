@@ -3,10 +3,15 @@
 All notable changes to the PocketOTP Android app. Versions match `versionName`. Release tags are `v<version>`.
 The release workflow attaches the section for the tagged version to the GitHub Release.
 
-## [Unreleased]
+## [2.5.2] - 2026-11-25
 
 ### Fixed
 - Permission rows on onboarding and in Settings: the "Recommended" badge no longer wraps one letter per line when the title is long or the screen is narrow. The badge stays on a single line and moves under the title when it does not fit.
+  权限清单里的「建议」标签在标题较长或窄屏时，不再竖排成单个字母。
+
+### Changed
+- Launcher icon is now the OTP-dots P mark, with a monochrome layer for Android 13+ themed icons.
+  应用图标换成带验证码圆点的 P 标志，并加入 Android 13+ 主题图标的单色图层。
 
 ## [2.5.1] - 2026-11-24
 

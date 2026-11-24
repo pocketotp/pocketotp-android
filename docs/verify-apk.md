@@ -19,9 +19,9 @@ If the fingerprint doesn't match, don't install the APK.
 Each release lists `pocketotp-<version>.apk.sha256`.
 
 ```sh
-sha256sum -c pocketotp-2.5.1.apk.sha256      # Linux
-shasum -a 256 pocketotp-2.5.1.apk            # macOS, compare by eye
-Get-FileHash pocketotp-2.5.1.apk             # Windows PowerShell
+sha256sum -c pocketotp-2.5.2.apk.sha256      # Linux
+shasum -a 256 pocketotp-2.5.2.apk            # macOS, compare by eye
+Get-FileHash pocketotp-2.5.2.apk             # Windows PowerShell
 ```
 
 ## 2. Check the signing certificate
@@ -29,7 +29,7 @@ Get-FileHash pocketotp-2.5.1.apk             # Windows PowerShell
 With the Android SDK build-tools:
 
 ```sh
-apksigner verify --print-certs pocketotp-2.5.1.apk
+apksigner verify --print-certs pocketotp-2.5.2.apk
 # Signer #1 certificate SHA-256 digest: 7fca5c4e3608171f85913ec4c8a018af94c5d9642a888df6ffcc280e88c34ddf
 ```
 
