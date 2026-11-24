@@ -57,7 +57,7 @@ pocketotp://pair?v=1&relay=<url-encoded https base URL>&code=<pairing code>[&exp
 - Normalisation (both sides): upper-case, strip `-` and whitespace, map look-alikes `O→0`, `I→1`, `L→1`. Anything else outside the alphabet is rejected.
 - **Single use**, **TTL 10 minutes**.
 - The relay stores only SHA-256 of the normalised code, bound to the account that created it.
-- Claims are rate-limited to **10 per IP per 10 minutes** (`429` + `Retry-After: 600`). With 60-bit codes, a 10-minute TTL and one live code per account, brute force is not practical, so there is no per-code lockout (a wrong code doesn't identify which code it was aimed at).
+- Claims are rate-limited to **10 per IP per 10 minutes** (`429` + `Retry-After: 600`), plus a burst limit shared with sign-in of 20 requests per IP per minute (`429` + `Retry-After: 60`). With 60-bit codes, a 10-minute TTL and one live code per account, brute force is not practical, so there is no per-code lockout (a wrong code doesn't identify which code it was aimed at).
 
 ## 4. Claim: `POST {relay}/pair/claim`
 
@@ -161,10 +161,16 @@ The phone protocol is unchanged from the single-user relay (sms-relay 2.1.x), au
 | claim with `O`/`I`/`L` in place of `0`/`1`/`1` | same code on the relay |
 | second claim of a used code | `410 code_expired` |
 
-## 8. Known app-side follow-ups (non-blocking for 2.5.0)
+## 8. App-side follow-ups — done in Android 2.5.1
 
-1. Map `error: "code_invalid"` (404) and `bad_request` to the specific "code wrong/expired" message
-   (today only `code_expired`/`code_invalid_or_used` are mapped, so 404 shows the generic message).
-2. Map `402 device_limit` to "This account already has the maximum number of phones; unpair one or upgrade to Pro".
-3. Handle `401 device_revoked`: clear the token and offer re-pairing.
-4. Surface `allowedSlots` / `suspended` from presence and `402 quota_exceeded` / `403 number_not_on_plan` from `/sms`.
+All four items below were implemented in app **2.5.1** (versionCode 12, commit `eb77af0`, merged via PR #4):
+
+1. ✅ `404 code_invalid` and `400 bad_request` map to the specific "code wrong/invalid" message; `410` to expired/used.
+2. ✅ `402 device_limit` shows "设备已满，请解绑或升级 Pro" (also when the body is missing).
+3. ✅ `401 device_revoked` (any HTTP route, the WebSocket upgrade, or WS close `4001`) clears the token and routes
+   to re-pairing. A plain `401` never clears the token.
+4. ✅ `allowedSlots` / `suspended` / `plan` from presence are applied (SIMs show "not on plan"); `/sms`
+   `402 quota_exceeded`, `403 number_not_on_plan` and `402 device_suspended` show Home banners. The app sends
+   `POST /phone/presence` every 10 minutes while on WebSocket so plan state stays fresh.
+
+Against the old single-user relay these fields are absent and nothing changes.
