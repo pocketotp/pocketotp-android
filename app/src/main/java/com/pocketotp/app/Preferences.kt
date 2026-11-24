@@ -87,6 +87,19 @@ class Preferences(context: Context) {
         prefs.edit().putString(KEY_HISTORY, arr.toString()).apply()
     }
 
+    var onboardingDone: Boolean
+        get() = prefs.getBoolean(KEY_ONBOARDING_DONE, false)
+        set(value) = prefs.edit().putBoolean(KEY_ONBOARDING_DONE, value).apply()
+
+    var permissionsAsked: Boolean
+        get() = prefs.getBoolean(KEY_PERMS_ASKED, false)
+        set(value) = prefs.edit().putBoolean(KEY_PERMS_ASKED, value).apply()
+
+    /** Set when the relay issues a device token through QR pairing. */
+    var deviceId: String
+        get() = prefs.getString(KEY_DEVICE_ID, "").orEmpty()
+        set(value) = prefs.edit().putString(KEY_DEVICE_ID, value).apply()
+
     var connectionState: String
         get() = prefs.getString(KEY_CONNECTION, "offline") ?: "offline"
         set(value) = prefs.edit().putString(KEY_CONNECTION, value).apply()
@@ -160,6 +173,9 @@ class Preferences(context: Context) {
         const val KEY_HISTORY = "history"
         const val KEY_SENDS = "sends"
         const val KEY_CONNECTION = "connection"
+        const val KEY_ONBOARDING_DONE = "onboarding_done"
+        const val KEY_PERMS_ASKED = "permissions_asked"
+        const val KEY_DEVICE_ID = "device_id"
         // Hosted relay URL is entered in the app (or via the debug CONFIGURE intent). Not baked in.
         const val DEFAULT_ENDPOINT = ""
         const val DEFAULT_BLACKLIST = """银行

@@ -96,6 +96,7 @@ data class MainUiState(
     val pendingConfirms: Int,
     val versionName: String,
     val nowMs: Long,
+    val checks: List<com.pocketotp.app.SetupChecks.Check> = emptyList(),
 )
 
 class MainActions(
@@ -107,13 +108,32 @@ class MainActions(
     val openBatterySettings: () -> Unit,
     val openFullScreenSettings: () -> Unit,
     val openPendingConfirm: () -> Unit,
+    val fixCheck: (com.pocketotp.app.SetupChecks.Id) -> Unit = {},
+    val scanQr: () -> Unit = {},
+    val pairFromText: (String) -> Unit = {},
+    val openOnboarding: () -> Unit = {},
 )
 
 private enum class Tab(val label: Int) { HOME(R.string.tab_home), HISTORY(R.string.tab_history), SETTINGS(R.string.tab_settings) }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainApp(state: MainUiState, actions: MainActions, initialTab: Int = 0) {
+fun MainApp(
+    state: MainUiState,
+    actions: MainActions,
+    initialTab: Int = 0,
+    showOnboarding: Boolean = false,
+    onboardingStep: Int = 0,
+    onFinishOnboarding: () -> Unit = {},
+    pairing: PairingUiState = PairingUiState(),
+    onPairConfirm: () -> Unit = {},
+    onPairDismiss: () -> Unit = {},
+) {
+    PairingDialog(pairing, onPairConfirm, onPairDismiss)
+    if (showOnboarding) {
+        OnboardingScreen(state, actions, onboardingStep, onFinishOnboarding)
+        return
+    }
     var tab by rememberSaveable { mutableIntStateOf(initialTab.coerceIn(0, Tab.entries.size - 1)) }
     val current = Tab.entries[tab]
     Scaffold(
@@ -182,11 +202,11 @@ private fun HomeScreen(
                 content = MaterialTheme.colorScheme.onErrorContainer,
             )
         }
-        if (state.missingPermissions.isNotEmpty()) {
+        if (!com.pocketotp.app.SetupChecks.requiredOk(state.checks)) {
             Banner(
                 text = stringResource(R.string.home_missing_perms),
-                action = stringResource(R.string.action_grant),
-                onAction = actions.requestPermissions,
+                action = stringResource(R.string.home_finish_setup),
+                onAction = actions.openOnboarding,
                 container = MaterialTheme.colorScheme.tertiaryContainer,
                 content = MaterialTheme.colorScheme.onTertiaryContainer,
             )
@@ -497,6 +517,9 @@ private fun SettingsScreen(state: MainUiState, actions: MainActions, padding: Pa
                     supportingText = { Text(stringResource(R.string.token_supporting)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
+                OutlinedButton(onClick = actions.scanQr, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.pair_scan))
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(onClick = { actions.saveConnection(endpoint, token); token = "" }, modifier = Modifier.weight(1f)) {
                         Text(stringResource(R.string.save))
@@ -510,29 +533,14 @@ private fun SettingsScreen(state: MainUiState, actions: MainActions, padding: Pa
 
         SectionLabel(stringResource(R.string.settings_device))
         OutlinedCardBox(Modifier.fillMaxWidth(), padded = false) {
-            CheckRow(
-                title = stringResource(R.string.check_permissions),
-                detail = stringResource(R.string.check_permissions_detail),
-                ok = state.missingPermissions.isEmpty(),
-                action = stringResource(R.string.action_grant),
-                onAction = actions.requestPermissions,
-            )
+            state.checks.forEachIndexed { i, check ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                ChecklistRow(check, onFix = { actions.fixCheck(check.id) })
+            }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            CheckRow(
-                title = stringResource(R.string.check_fullscreen),
-                detail = stringResource(R.string.check_fullscreen_detail),
-                ok = state.fullScreenAllowed,
-                action = stringResource(R.string.action_enable),
-                onAction = actions.openFullScreenSettings,
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            CheckRow(
-                title = stringResource(R.string.check_battery),
-                detail = stringResource(R.string.check_battery_detail),
-                ok = state.batteryUnrestricted,
-                action = stringResource(R.string.action_enable),
-                onAction = actions.openBatterySettings,
-            )
+            TextButton(onClick = actions.openOnboarding, modifier = Modifier.padding(horizontal = 6.dp)) {
+                Text(stringResource(R.string.settings_run_setup))
+            }
         }
 
         SectionLabel(stringResource(R.string.settings_privacy))
@@ -566,29 +574,4 @@ private fun SettingsScreen(state: MainUiState, actions: MainActions, padding: Pa
 @Composable
 private fun SectionLabel(text: String) {
     Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
-}
-
-@Composable
-private fun CheckRow(title: String, detail: String, ok: Boolean, action: String, onAction: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !ok, onClick = onAction)
-            .heightIn(min = 56.dp)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            Modifier.size(22.dp).background(if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (ok) Text("✓", color = MaterialTheme.colorScheme.onPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Medium)
-            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (!ok) TextButton(onClick = onAction) { Text(action) }
-    }
 }
