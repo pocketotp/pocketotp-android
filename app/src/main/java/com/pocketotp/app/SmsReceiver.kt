@@ -45,7 +45,8 @@ class SmsReceiver : BroadcastReceiver() {
         if (blocked != null) {
             prefs.addHistory(
                 HistoryItem(
-                    code = extracted.code ?: "—",
+                    // Never keep codes from blocked (bank/payment) messages on disk.
+                    code = "—",
                     source = source.ifBlank { sender },
                     timestamp = System.currentTimeMillis(),
                     skipped = true,
