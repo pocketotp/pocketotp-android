@@ -26,6 +26,7 @@ object RelayClient {
         val timestamp: Long,
         val subscriptionId: Int?,
         val slot: Int?,
+        val simSlotIndex: Int? = null,
         val carrier: String?,
         val test: Boolean,
     ) {
@@ -39,6 +40,7 @@ object RelayClient {
             o.put("timestamp", timestamp)
             if (subscriptionId != null) o.put("subscriptionId", subscriptionId)
             if (slot != null) o.put("slot", slot)
+            if (simSlotIndex != null) o.put("simSlotIndex", simSlotIndex)
             o.put("carrier", carrier)
             o.put("test", test)
             return o.toString()

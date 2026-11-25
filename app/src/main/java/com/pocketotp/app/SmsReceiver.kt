@@ -26,7 +26,10 @@ class SmsReceiver : BroadcastReceiver() {
             ?: ""
 
         val subId = subscriptionId(intent)
-        val (slot, carrier) = simInfo(context, subId)
+        val sim = SimInfo.findBySubscriptionId(context, subId) ?: fallbackSim(context, subId)
+        val slot = sim?.slot
+        val simSlotIndex = sim?.simSlotIndex
+        val carrier = sim?.carrier
 
         val extracted = CodeExtractor.extract(body)
         val source = listOfNotNull(
@@ -75,6 +78,7 @@ class SmsReceiver : BroadcastReceiver() {
                 timestamp = System.currentTimeMillis(),
                 subscriptionId = subId,
                 slot = slot,
+                simSlotIndex = simSlotIndex,
                 carrier = carrier,
                 test = false,
             ),
@@ -95,20 +99,29 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     @Suppress("DEPRECATION")
-    private fun simInfo(context: Context, subId: Int?): Pair<Int?, String?> {
-        if (subId == null) return null to null
+    private fun fallbackSim(context: Context, subId: Int?): SimSlot? {
+        if (subId == null) return null
         return try {
-            val mgr = context.getSystemService(SubscriptionManager::class.java) ?: return null to null
-            val info = mgr.getActiveSubscriptionInfo(subId) ?: return null to null
+            val mgr = context.getSystemService(SubscriptionManager::class.java) ?: return null
+            val info = mgr.getActiveSubscriptionInfo(subId) ?: return null
             val carrier = info.carrierName?.toString()?.takeIf { it.isNotBlank() }
                 ?: info.displayName?.toString()?.takeIf { it.isNotBlank() }
-            info.simSlotIndex to carrier
+            SimSlot(
+                subscriptionId = subId,
+                simSlotIndex = info.simSlotIndex,
+                slot = SimInfo.uploadSlot(info.simSlotIndex),
+                carrier = carrier,
+                mccmnc = null,
+                number = null,
+                numberMasked = null,
+                ready = true,
+            )
         } catch (e: SecurityException) {
             Log.w(TAG, "missing phone permission for SIM info")
-            null to null
+            null
         } catch (e: Exception) {
             Log.w(TAG, "SIM info unavailable: ${e.javaClass.simpleName}")
-            null to null
+            null
         }
     }
 

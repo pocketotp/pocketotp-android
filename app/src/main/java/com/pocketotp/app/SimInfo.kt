@@ -28,6 +28,14 @@ data class SimSlot(
 }
 
 object SimInfo {
+    /** 1-based slot as required by the relay. Android's simSlotIndex is 0-based. */
+    fun uploadSlot(simSlotIndex: Int): Int = simSlotIndex + 1
+
+    fun findBySubscriptionId(context: Context, subId: Int?): SimSlot? {
+        if (subId == null) return null
+        return list(context).firstOrNull { it.subscriptionId == subId }
+    }
+
     fun list(context: Context): List<SimSlot> {
         return try {
             val mgr = context.getSystemService(SubscriptionManager::class.java) ?: return emptyList()
@@ -44,7 +52,7 @@ object SimInfo {
                 SimSlot(
                     subscriptionId = info.subscriptionId,
                     simSlotIndex = info.simSlotIndex,
-                    slot = info.simSlotIndex + 1,
+                    slot = uploadSlot(info.simSlotIndex),
                     carrier = info.carrierName?.toString()?.takeIf { it.isNotBlank() }
                         ?: info.displayName?.toString(),
                     mccmnc = mccmnc,

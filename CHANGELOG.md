@@ -3,6 +3,12 @@
 All notable changes to the PocketOTP Android app. Versions match `versionName`. Release tags are `v<version>`.
 The release workflow attaches the section for the tagged version to the GitHub Release.
 
+## [2.5.3] - 2026-11-26
+
+### Fixed
+- On a Free plan, codes from the first SIM were rejected as "not on the plan" and codes from the second SIM were uploaded instead. The app was sending a 0-based slot index. Uploads now send the 1-based slot (and 0-based simSlotIndex).
+  免费档会把第一张卡的验证码误判为「不在套餐内」，第二张卡的反而能上传。原因是上传时把从 0 起算的卡槽序号当成了从 1 起算的 slot。现在会同时发送正确的 1-based slot 和 0-based simSlotIndex。
+
 ## [2.5.2] - 2026-11-25
 
 ### Fixed
