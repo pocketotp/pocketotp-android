@@ -29,7 +29,28 @@ Change it in both repos in the same PR pair.
 ```
 
 - Creating a new code invalidates the previous unused code of the same account.
-- `402 device_limit` if the account is already at its device limit (Free 1, Pro 3). Max 20 codes / hour / account.
+- `402 device_limit` if the account is already at its device limit (Free 1, Pro 3). The body lists
+  `replaceable: [{id, name}]` so the console can offer §1a. Max 20 codes / hour / account.
+
+### 1a. Replacing a paired phone (reinstall, new phone)
+
+Uninstalling the app deletes the phone's device token, but the relay still counts the old device. At the limit the
+signed-in owner can replace it from the console:
+
+`POST {relay}/v1/pairing` with body `{"replaceDeviceId": "dev_…"}` (session auth). The console asks the owner to
+confirm first ("Replace X? X is signed out as soon as the new phone pairs").
+
+- The response is a normal code (§1) plus `"replaces": {"id", "name"}`.
+- The code is bound to that device. Claiming it (§4) revokes the old device **in the same D1 transaction** that creates
+  the new one: the old token gets `401 device_revoked` from then on, its sockets are closed (`4001`), and its codes,
+  SIMs, pending sends and history are wiped. The new device inherits the old one's rank, so the count never goes up.
+- The relay emails the account ("a new phone replaced X"). The email contains no codes or tokens.
+- Limit: Free 3, Pro 10 replacements per rolling 30 days (`429 replace_limit`, checked at create and at claim).
+  Unpairing in the console and pairing again is unaffected.
+- `404 not_found` if the device isn't an active device of this account.
+- **The relay never decides on its own that a claim replaces a device.** Nothing the phone sends (model, ids,
+  extra fields) can trigger a replacement; only a code the owner created with `replaceDeviceId` can.
+- If the target was unpaired before the claim, the code acts as a plain code (normal limit check).
 
 ## 2. Pairing link (QR payload)
 
@@ -111,6 +132,7 @@ JSON `{"ok": false, "error": "<code>"}`:
 |---|---|---|
 | 400 | `bad_request` | Malformed JSON / body, unsupported `v`, code not 8–16 alphabet characters. |
 | 402 | `device_limit` | The account already has its maximum number of phones (Free 1, Pro 3). |
+| 429 | `replace_limit` | Replace code, but the account used its replacements for the last 30 days (§1a). |
 | 404 | `code_invalid` | No such code. |
 | 410 | `code_expired` | Code past its TTL, or already used. |
 | 429 | `rate_limited` | Too many attempts; `Retry-After` in seconds. |
@@ -136,8 +158,9 @@ The phone protocol is unchanged from the single-user relay (sms-relay 2.1.x), au
 - **Plan states:** `allowedSlots` lists SIM slots on the plan (Free 1 number, Pro 2); codes from other slots get `403`.
   `suspended: true` / `402 device_suspended` means the account downgraded and this phone is beyond the device limit
   (presence keeps working). `402 quota_exceeded` means the Free monthly code quota (50, UTC month) is used up.
-- **Re-pairing:** claiming a new code on an already-paired phone replaces its stored token. The relay does not
-  revoke the old device automatically; the owner unpairs it in the console (it frees the device slot).
+- **Re-pairing:** claiming a new code on an already-paired phone replaces its stored token. A plain code never
+  revokes the old device; the owner unpairs it in the console (it frees the device slot) or uses a replace code (§1a).
+- Success may include `"replaced": {"deviceId", "name"}` when a replace code was claimed.
 
 ## 6. Security notes
 

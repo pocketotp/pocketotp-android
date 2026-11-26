@@ -63,6 +63,7 @@ class RelayStateTest {
         assertEquals(RelayState.ClaimError.CODE, RelayState.claimErrorOf("bad_request"))
         assertEquals(RelayState.ClaimError.CODE, RelayState.claimErrorOf("code_expired"))
         assertEquals(RelayState.ClaimError.DEVICE_LIMIT, RelayState.claimErrorOf("device_limit"))
+        assertEquals(RelayState.ClaimError.REPLACE_LIMIT, RelayState.claimErrorOf("replace_limit"))
         assertEquals(RelayState.ClaimError.RATE, RelayState.claimErrorOf("rate_limited"))
         assertEquals(RelayState.ClaimError.NETWORK, RelayState.claimErrorOf("network"))
         assertEquals(RelayState.ClaimError.OTHER, RelayState.claimErrorOf("http_500"))
