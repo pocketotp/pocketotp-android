@@ -224,7 +224,25 @@ class Preferences(context: Context) {
 转账
 余额
 Bank
-card ending"""
+card ending
+account ending
+credit card
+debit card
+transfer
+withdrawal
+deposit
+payment
+transaction
+balance
+PayPal
+Venmo
+Zelle
+Cash App
+Coinbase
+Binance
+brokerage
+loan
+Social Security"""
         private const val MAX_HISTORY = 10
     }
 }

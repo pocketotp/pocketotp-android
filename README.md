@@ -4,7 +4,7 @@ Android app that forwards SMS verification codes from **your own phone** to a ho
 
 Hosted service: [pocketotp.com](https://pocketotp.com). Relay: [`https://relay.pocketotp.com`](https://relay.pocketotp.com).
 
-The current official release is **2.5.3**: [download the signed APK](https://github.com/pocketotp/pocketotp-android/releases/tag/v2.5.3). This repository is the Android client (Apache-2.0). The relay is a **hosted, closed-source** service. You can pair by scanning a QR code from the console, or paste the service URL and an access token into the app; neither is stored in this repo.
+The current official release is **2.5.4**: [download the signed APK](https://github.com/pocketotp/pocketotp-android/releases/tag/v2.5.4). This repository is the Android client (Apache-2.0). The relay is a **hosted, closed-source** service. You can pair by scanning a QR code from the console, or paste the service URL and an access token into the app; neither is stored in this repo.
 
 [![Get it on Obtainium](fastlane/metadata/android/obtainium-badge.png)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.pocketotp.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fpocketotp%2Fpocketotp-android%22%2C%22author%22%3A%22pocketotp%22%2C%22name%22%3A%22PocketOTP%22%7D) [![mcptry](https://mcptry.com/badge/com.pocketotp/pocketotp)](https://mcptry.com/servers/com.pocketotp/pocketotp)
 
@@ -17,7 +17,7 @@ Requires **Android 8.0** (API 26) or later. Dual-SIM phones are supported.
 ## What it does
 
 - Listens for incoming SMS on every SIM slot and records slot, subscription, and carrier.
-- Extracts 4–8 digit codes (near 验证码 / 校验码 / 动态码 / code) and a `【brand】` tag when present.
+- Extracts 4–8 digit codes and split codes like `123-456` / `123 456` (near 验证码 / 校验码 / 动态码 / code), letter+digit codes right after a code keyword, and a brand from `【brand】`, `[Brand]`, `Brand:` or `Your Brand code is`.
 - Uploads matching messages to the relay over HTTPS with your bearer token. Failed uploads are retried.
 - Keeps a foreground service so the phone stays connected to the relay (WebSocket, with long-poll fallback).
 - Sends SMS from a chosen SIM when the relay asks it to.

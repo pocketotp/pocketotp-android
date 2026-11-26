@@ -419,6 +419,7 @@ class MainActivity : ComponentActivity() {
                     error = getString(when (RelayState.claimErrorOf(result.error)) {
                         RelayState.ClaimError.CODE -> if (result.error == "code_expired") R.string.pair_claim_err_expired else R.string.pair_claim_err_code
                         RelayState.ClaimError.DEVICE_LIMIT -> R.string.pair_claim_err_device_limit
+                        RelayState.ClaimError.REPLACE_LIMIT -> R.string.pair_claim_err_replace_limit
                         RelayState.ClaimError.RATE -> R.string.pair_claim_err_rate
                         RelayState.ClaimError.NETWORK -> R.string.pair_claim_err_network
                         RelayState.ClaimError.OTHER -> R.string.pair_claim_err_other

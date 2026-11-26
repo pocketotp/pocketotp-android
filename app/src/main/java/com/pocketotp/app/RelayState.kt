@@ -74,11 +74,12 @@ object RelayState {
     }
 
     /** Pairing claim error → message category. */
-    enum class ClaimError { CODE, DEVICE_LIMIT, RATE, NETWORK, OTHER }
+    enum class ClaimError { CODE, DEVICE_LIMIT, REPLACE_LIMIT, RATE, NETWORK, OTHER }
 
     fun claimErrorOf(error: String): ClaimError = when (error) {
         "code_invalid", "code_expired", "code_invalid_or_used", "bad_request" -> ClaimError.CODE
         "device_limit" -> ClaimError.DEVICE_LIMIT
+        "replace_limit" -> ClaimError.REPLACE_LIMIT
         "rate_limited" -> ClaimError.RATE
         "network" -> ClaimError.NETWORK
         else -> ClaimError.OTHER
