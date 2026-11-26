@@ -3,6 +3,19 @@
 All notable changes to the PocketOTP Android app. Versions match `versionName`. Release tags are `v<version>`.
 The release workflow attaches the section for the tagged version to the GitHub Release.
 
+## [2.5.4] - Unreleased
+
+### Changed
+- Code extraction: split codes such as `123-456`, `123 456` and `4821-7730` are recognised and returned without the separator. Letter+digit codes (`K7Q2M9`) are picked up when they directly follow a code keyword; promo/coupon messages are excluded. Full-width digits are normalised.
+  支持带分隔的验证码（123-456、123 456），返回时去掉分隔符；紧跟在关键词后的字母数字码（如 K7Q2M9）也能识别，优惠码类短信不算。全角数字会先转成半角。
+- Brand detection: besides `【品牌】`, also `[Brand]`, a leading `Brand:` and `Your Brand code is`.
+  品牌识别除了【】，新增 [Brand]、开头的 "Brand:" 和 "Your Brand code is" 写法。
+- Default blacklist adds English financial and sensitive keywords (transfer, payment, credit card, PayPal, Venmo, Zelle, Coinbase, loan, Social Security, …). Existing installs keep their saved list.
+  默认黑名单加入英文金融和敏感词。已经保存过黑名单的用户不受影响。
+
+### Tests
+- Unit tests for the extractor with 35 Chinese and 34 English made-up samples, plus default-blacklist tests.
+
 ## [2.5.3] - 2026-11-26
 
 ### Fixed

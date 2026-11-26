@@ -40,8 +40,8 @@ android {
         applicationId = "com.pocketotp.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "2.5.3"
+        versionCode = 15
+        versionName = "2.5.4"
     }
 
     signingConfigs {
@@ -90,6 +90,11 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
+            // Compose screenshot tests need ui-test-manifest, which is debug-only.
+            // Skip them in the release unit-test task so `./gradlew test` passes.
+            all {
+                if (it.name == "testReleaseUnitTest") it.exclude("**/screenshot/**")
+            }
         }
     }
 }
