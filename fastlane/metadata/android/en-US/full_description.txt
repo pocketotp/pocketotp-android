@@ -1,0 +1,32 @@
+Your assistant cannot see the verification code that just arrived on your phone. Renting a number, or handing over your whole inbox, is a poor fix.
+
+PocketOTP runs on your own Android phone and forwards new SMS verification codes to your own AI assistant. It is for your own numbers only — not a number pool, and not for reselling codes.
+
+What it does
+
+• Watches incoming SMS on every SIM and extracts 4–8 digit codes
+• Uploads matching messages to a relay you pair with (QR code or manual token)
+• Stays connected in the background so new codes can reach your assistant promptly
+• Sends a text from a chosen SIM only after you long-press Allow on the phone
+• Blocks bank and payment-related messages by default (the keyword list is editable)
+
+What it does not do
+
+• It does not read your historical inbox
+• It does not upload ordinary conversations
+• It does not send SMS without your confirmation on the device
+
+The Android app is Apache-2.0. Official builds are signed APKs on GitHub Releases (Google Play does not grant these SMS permissions to ordinary apps). The hosted relay at pocketotp.com is a separate, closed-source service. Requires Android 8.0 or later. Dual-SIM phones are supported.
+
+Permissions
+
+• RECEIVE_SMS, READ_SMS — receive new texts. The app does not scan the inbox; READ_SMS is required on some devices
+• SEND_SMS — send a text after you confirm
+• READ_PHONE_STATE, READ_PHONE_NUMBERS — tell which SIM received a message or should send one
+• INTERNET, ACCESS_NETWORK_STATE — talk to the relay over HTTPS
+• POST_NOTIFICATIONS, FOREGROUND_SERVICE, FOREGROUND_SERVICE_SPECIAL_USE, USE_FULL_SCREEN_INTENT — persistent notification, connection, and send-confirmation alerts
+• RECEIVE_BOOT_COMPLETED — restart after reboot if forwarding is enabled
+• WAKE_LOCK — keep the connection from sleeping
+• REQUEST_IGNORE_BATTERY_OPTIMIZATIONS — optional one-tap exemption from the setup checklist
+• SYSTEM_ALERT_WINDOW — optional; lets the confirm screen open from the background on some phones
+• CAMERA — optional; only used by the QR pairing scanner

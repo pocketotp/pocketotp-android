@@ -6,6 +6,10 @@ Hosted service: [pocketotp.com](https://pocketotp.com). Relay: [`https://relay.p
 
 The current official release is **2.5.3**: [download the signed APK](https://github.com/pocketotp/pocketotp-android/releases/tag/v2.5.3). This repository is the Android client (Apache-2.0). The relay is a **hosted, closed-source** service. You can pair by scanning a QR code from the console, or paste the service URL and an access token into the app; neither is stored in this repo.
 
+[![Get it on Obtainium](fastlane/metadata/android/obtainium-badge.png)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.pocketotp.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fpocketotp%2Fpocketotp-android%22%2C%22author%22%3A%22pocketotp%22%2C%22name%22%3A%22PocketOTP%22%7D)
+
+If you use [Obtainium](https://github.com/ImranR98/Obtainium), the badge (or [this link](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.pocketotp.app%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fpocketotp%2Fpocketotp-android%22%2C%22author%22%3A%22pocketotp%22%2C%22name%22%3A%22PocketOTP%22%7D)) adds this repository so you can install and update the signed APK from GitHub Releases.
+
 The application id is `com.pocketotp.app` and the in-app name is **PocketOTP**. This id is different from the earlier `com.jimmy.smsrelay` builds, so installing this app does not replace an existing SMS Relay install. Grant permissions and pair (or enter the relay URL and token) again, then disable or uninstall the old app so only one client receives SMS.
 
 Requires **Android 8.0** (API 26) or later. Dual-SIM phones are supported.
