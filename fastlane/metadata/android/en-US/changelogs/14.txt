@@ -1,0 +1,1 @@
+Fixed a Free-plan dual-SIM bug: the app sent a 0-based slot index, so codes from the first SIM were rejected as not on the plan and the second SIM was uploaded instead. Uploads now send the 1-based slot and the 0-based simSlotIndex.

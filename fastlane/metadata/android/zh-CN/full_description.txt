@@ -1,0 +1,32 @@
+助手看不见刚刚到达你手机上的验证码。去租一个号码，或者把整个收件箱交出去，都不是好办法。
+
+PocketOTP 跑在你自己的安卓手机上，只把新收到的短信验证码转给你自己的 AI 助理。只用于本人号码，不是号池，也不会转卖验证码。
+
+它做什么
+
+• 监听每张 SIM 卡上的新短信，提取 4 到 8 位验证码
+• 把匹配的短信上传到你配对的中转服务（扫码或手动填写令牌）
+• 在后台保持连接，方便助手及时拿到新验证码
+• 需要用你的卡发短信时，手机会弹出确认页，长按「允许」才会发出
+• 默认拦截银行和支付类短信（关键词可在应用里改）
+
+它不做什么
+
+• 不读历史收件箱
+• 不上传普通聊天短信
+• 未经你在手机上确认，不会发出短信
+
+Android 应用是 Apache-2.0。正式版是 GitHub Releases 上的签名 APK（这类短信权限，Google Play 通常不会给普通应用）。pocketotp.com 上的托管中转是独立的闭源服务。需要 Android 8.0 或更高版本，支持双卡手机。
+
+权限说明
+
+• RECEIVE_SMS、READ_SMS — 接收新短信。应用不扫描收件箱；部分机型需要 READ_SMS
+• SEND_SMS — 在你确认后发送短信
+• READ_PHONE_STATE、READ_PHONE_NUMBERS — 识别是哪张卡收到短信，或应该用哪张卡发送
+• INTERNET、ACCESS_NETWORK_STATE — 通过 HTTPS 连接中转服务
+• POST_NOTIFICATIONS、FOREGROUND_SERVICE、FOREGROUND_SERVICE_SPECIAL_USE、USE_FULL_SCREEN_INTENT — 常驻通知、保持连接，以及发送确认提醒
+• RECEIVE_BOOT_COMPLETED — 若已开启转发，开机后自动恢复
+• WAKE_LOCK — 避免连接被休眠
+• REQUEST_IGNORE_BATTERY_OPTIMIZATIONS — 可选；设置向导里可一键申请忽略电池优化
+• SYSTEM_ALERT_WINDOW — 可选；部分手机需要它才能从后台弹出确认页
+• CAMERA — 可选；仅用于扫描配对二维码
