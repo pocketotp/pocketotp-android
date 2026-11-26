@@ -175,15 +175,18 @@
     <string name="pair_err_expired">配对码已过期，请在控制台重新生成</string>
     <string name="pair_claim_err_code">配对码不对或无效，请核对后重试，或在控制台重新生成</string>
     <string name="pair_claim_err_expired">配对码已过期或已用过，请在控制台重新生成</string>
-    <string name="pair_claim_err_device_limit">设备已满，请解绑或升级 Pro</string>
+    <string name="pair_claim_err_device_limit">设备已满。请在网页控制台解绑旧手机，或在配对时选「替换」后重新扫码</string>
+    <string name="pair_claim_err_replace_limit">30 天内的替换次数已用完。请在网页控制台先解绑旧手机再配对</string>
     <string name="pair_claim_err_rate">尝试次数太多，请稍后再试</string>
     <string name="pair_claim_err_network">连不上中转服务</string>
+    <string name="start_failed_title">PocketOTP 没能自动重新连接</string>
+    <string name="start_failed_body">点这里打开 App，恢复验证码转发。</string>
     <string name="pair_claim_err_other">配对失败</string>
     <!-- Hosted relay account states (2.5.1) -->
     <string name="account_channel">账户与连接</string>
     <string name="revoked_title">这台手机已被解绑</string>
-    <string name="revoked_body">访问令牌已在控制台吊销，本机已清除。打开 PocketOTP 重新扫码配对。</string>
-    <string name="banner_revoked">这台手机已在控制台解绑，令牌已清除。重新配对后才能继续转发。</string>
+    <string name="revoked_body">这台手机已在控制台被解绑，或被一台新手机替换，本机的令牌已清除。如果不是你操作的，请登录控制台检查。需要继续使用就重新扫码配对。</string>
+    <string name="banner_revoked">这台手机已在控制台解绑或被新手机替换，令牌已清除。重新配对后才能继续转发。</string>
     <string name="banner_repair">重新配对</string>
     <string name="banner_suspended">账户已降级，这台手机超出设备数量，暂停转发。请在控制台解绑其他手机或升级 Pro。</string>
     <string name="banner_quota">本月免费验证码额度已用完，新验证码不会上传。升级 Pro，或等下个月（UTC）自动恢复。</string>

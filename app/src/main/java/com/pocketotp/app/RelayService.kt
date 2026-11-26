@@ -51,6 +51,7 @@ class RelayService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startInForeground()
+        RelayStart.clearStartFailure(this)
         startLoop()
         return START_STICKY
     }
@@ -109,7 +110,6 @@ class RelayService : Service() {
         if (!running.compareAndSet(false, true)) return
         loop.set(true)
         thread = Thread({
-            var backoffMs = 1_000L
             while (loop.get()) {
                 val prefs = Preferences(this)
                 if (!prefs.enabled || prefs.endpoint.isBlank() || prefs.token.isBlank()) {
@@ -136,8 +136,7 @@ class RelayService : Service() {
                 }
                 if (!loop.get()) break
                 setConnection("reconnecting")
-                sleepQuiet(backoffMs)
-                backoffMs = (backoffMs * 2).coerceAtMost(30_000L)
+                sleepQuiet(backoff.next())
             }
             running.set(false)
         }, "pocketotp-socket").apply { isDaemon = true; start() }
@@ -226,8 +225,9 @@ class RelayService : Service() {
         }
     }
 
-    @Volatile private var backoffFloor = 1_000L
-    private fun backoffReset() { backoffFloor = 1_000L }
+    // Before 2.5.4 the reset went to an unused field, so the delay stayed at 30s after the first drops.
+    private val backoff = ReconnectBackoff()
+    private fun backoffReset() = backoff.reset()
 
     private fun runLongPoll(prefs: Preferences) {
         val base = prefs.endpoint.trimEnd('/')

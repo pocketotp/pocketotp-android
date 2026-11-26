@@ -13,6 +13,14 @@ The release workflow attaches the section for the tagged version to the GitHub R
 - Default blacklist adds English financial and sensitive keywords (transfer, payment, credit card, PayPal, Venmo, Zelle, Coinbase, loan, Social Security, …). Existing installs keep their saved list.
   默认黑名单加入英文金融和敏感词。已经保存过黑名单的用户不受影响。
 
+### Fixed
+- Reconnect delay now resets after a successful connection. Before, the reset went to an unused field, so after a few drops the phone always waited the 30 s maximum before reconnecting.
+  重连等待时间在连上后会重置。之前重置写错了地方，断过几次以后每次都要等满 30 秒才重连。
+- If Android refuses to restart the connection after an update or reboot, the app now shows a "tap to reconnect" notification instead of staying offline silently. Start attempts are logged with the reason (boot, package_replaced, app_start).
+  更新或重启后如果系统不让后台重新连接，App 会弹一条「点这里重新连接」的通知，不再悄悄离线。
+- Pairing errors: `device_limit` now points to unpair or **Replace** in the web console; new `replace_limit` message. The "unpaired" notice also covers being replaced by a new phone.
+  设备已满时提示去控制台解绑或「替换」；新增替换次数用完的提示；被新手机替换时也会提示本机已解绑。
+
 ### Tests
 - Unit tests for the extractor with 35 Chinese and 34 English made-up samples, plus default-blacklist tests.
 

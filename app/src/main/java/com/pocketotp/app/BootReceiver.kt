@@ -12,6 +12,8 @@ class BootReceiver : BroadcastReceiver() {
         ) {
             return
         }
-        RelayStart.tryStart(context)
+        // MY_PACKAGE_REPLACED: an app update (or adb install -r) killed the old process and its socket.
+        val reason = if (action == Intent.ACTION_MY_PACKAGE_REPLACED) "package_replaced" else "boot"
+        RelayStart.tryStart(context, reason)
     }
 }

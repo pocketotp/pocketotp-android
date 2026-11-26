@@ -9,7 +9,7 @@ class PocketOtpApp : Application() {
     override fun onCreate() {
         super.onCreate()
         RelayHttp.appContext = applicationContext
-        RelayStart.tryStart(this)
+        RelayStart.tryStart(this, "app_start")
         registerActivityLifecycleCallbacks(
             object : ActivityLifecycleCallbacks {
                 override fun onActivityStarted(activity: Activity) {
