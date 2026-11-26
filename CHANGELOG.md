@@ -3,7 +3,7 @@
 All notable changes to the PocketOTP Android app. Versions match `versionName`. Release tags are `v<version>`.
 The release workflow attaches the section for the tagged version to the GitHub Release.
 
-## [2.5.4] - Unreleased
+## [2.5.4] - 2026-11-26
 
 ### Changed
 - Code extraction: split codes such as `123-456`, `123 456` and `4821-7730` are recognised and returned without the separator. Letter+digit codes (`K7Q2M9`) are picked up when they directly follow a code keyword; promo/coupon messages are excluded. Full-width digits are normalised.
@@ -12,6 +12,12 @@ The release workflow attaches the section for the tagged version to the GitHub R
   品牌识别除了【】，新增 [Brand]、开头的 "Brand:" 和 "Your Brand code is" 写法。
 - Default blacklist adds English financial and sensitive keywords (transfer, payment, credit card, PayPal, Venmo, Zelle, Coinbase, loan, Social Security, …). Existing installs keep their saved list.
   默认黑名单加入英文金融和敏感词。已经保存过黑名单的用户不受影响。
+
+### Added
+- Auto-reconnect after an app update: when a new version is installed over the old one, the connection to the relay comes back on its own, without opening the app. After a reboot the phone reconnects once you unlock it once (Android behaviour).
+  App 更新覆盖安装后会自动重新连上中转服务，不用手动打开 App。手机重启后，解锁一次就会恢复转发（Android 的机制）。
+- "Tap to reconnect" notification when Android blocks a background restart (see Fixed).
+  系统不让后台重连时，会弹出「点这里重新连接」的通知（见下方）。
 
 ### Fixed
 - Reconnect delay now resets after a successful connection. Before, the reset went to an unused field, so after a few drops the phone always waited the 30 s maximum before reconnecting.

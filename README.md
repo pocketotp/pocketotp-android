@@ -4,7 +4,7 @@ Android app that forwards SMS verification codes from **your own phone** to a ho
 
 Hosted service: [pocketotp.com](https://pocketotp.com). Relay: [`https://relay.pocketotp.com`](https://relay.pocketotp.com).
 
-The current official release is **2.5.3**: [download the signed APK](https://github.com/pocketotp/pocketotp-android/releases/tag/v2.5.3). This repository is the Android client (Apache-2.0). The relay is a **hosted, closed-source** service. You can pair by scanning a QR code from the console, or paste the service URL and an access token into the app; neither is stored in this repo.
+The current official release is **2.5.4**: [download the signed APK](https://github.com/pocketotp/pocketotp-android/releases/tag/v2.5.4). This repository is the Android client (Apache-2.0). The relay is a **hosted, closed-source** service. You can pair by scanning a QR code from the console, or paste the service URL and an access token into the app; neither is stored in this repo.
 
 The application id is `com.pocketotp.app` and the in-app name is **PocketOTP**. This id is different from the earlier `com.jimmy.smsrelay` builds, so installing this app does not replace an existing SMS Relay install. Grant permissions and pair (or enter the relay URL and token) again, then disable or uninstall the old app so only one client receives SMS.
 
